@@ -11,8 +11,9 @@
 ## 阶段0 项目骨架
 
 ### 0.1 目录结构与项目规则
-- [ ] 建立目录：app/db.py、app/engine/、app/ui/、data/、data/seed/、docs/
-- [ ] 编写 `.hermes.md`：项目规则（中文界面、tkinter、SQLite、文件放项目目录、验收标准）
+- [x] 建立目录：app/db.py、app/engine/、app/ui/、data/、data/seed/、docs/（2026-08-03）
+- [x] 编写 `.hermes.md`：项目规则（中文界面、tkinter、SQLite、文件放项目目录、验收标准）（2026-08-03）
+- [x] git 仓库初始化并纳入管理（2026-08-03）
 - **验收**：目录齐全；`.hermes.md` 可读
 
 ## 阶段1 数据模型与规则库
