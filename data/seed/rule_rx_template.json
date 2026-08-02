@@ -1,0 +1,1082 @@
+[
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "A1",
+    "pattern": "气虚血瘀",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "益气活血",
+        "acupoints": [
+          "内关",
+          "足三里",
+          "膻中"
+        ],
+        "diet_tags": [
+          "益气",
+          "活血"
+        ],
+        "diet_notes": "黄芪、山药、红枣类；忌生冷",
+        "contraindications": [
+          "生冷"
+        ],
+        "exercise_note": "八段锦『双手托天』『攒拳怒目』；强度宜缓"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "A2",
+    "pattern": "气虚血瘀",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "益气活血",
+        "acupoints": [
+          "内关",
+          "足三里",
+          "膻中"
+        ],
+        "diet_tags": [
+          "益气",
+          "活血"
+        ],
+        "diet_notes": "黄芪、山药、红枣类；忌生冷",
+        "contraindications": [
+          "生冷"
+        ],
+        "exercise_note": "八段锦『双手托天』『攒拳怒目』；强度宜缓"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "A3",
+    "pattern": "气虚血瘀",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "益气活血",
+        "acupoints": [
+          "内关",
+          "足三里",
+          "膻中"
+        ],
+        "diet_tags": [
+          "益气",
+          "活血"
+        ],
+        "diet_notes": "黄芪、山药、红枣类；忌生冷",
+        "contraindications": [
+          "生冷"
+        ],
+        "exercise_note": "八段锦『双手托天』『攒拳怒目』；强度宜缓"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "B1",
+    "pattern": "痰浊闭阻",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "化痰祛湿",
+        "acupoints": [
+          "丰隆",
+          "中脘",
+          "阴陵泉"
+        ],
+        "diet_tags": [
+          "化痰",
+          "祛湿"
+        ],
+        "diet_notes": "薏苡仁、冬瓜、陈皮；严格控糖控脂",
+        "contraindications": [
+          "高糖",
+          "高脂"
+        ],
+        "exercise_note": "增加有氧时长，控制体重为首要目标"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "B2",
+    "pattern": "痰浊闭阻",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "化痰祛湿",
+        "acupoints": [
+          "丰隆",
+          "中脘",
+          "阴陵泉"
+        ],
+        "diet_tags": [
+          "化痰",
+          "祛湿"
+        ],
+        "diet_notes": "薏苡仁、冬瓜、陈皮；严格控糖控脂",
+        "contraindications": [
+          "高糖",
+          "高脂"
+        ],
+        "exercise_note": "增加有氧时长，控制体重为首要目标"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "B3",
+    "pattern": "痰浊闭阻",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "化痰祛湿",
+        "acupoints": [
+          "丰隆",
+          "中脘",
+          "阴陵泉"
+        ],
+        "diet_tags": [
+          "化痰",
+          "祛湿"
+        ],
+        "diet_notes": "薏苡仁、冬瓜、陈皮；严格控糖控脂",
+        "contraindications": [
+          "高糖",
+          "高脂"
+        ],
+        "exercise_note": "增加有氧时长，控制体重为首要目标"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "C1",
+    "pattern": "气阴两虚",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "益气养阴",
+        "acupoints": [
+          "三阴交",
+          "太溪",
+          "神门"
+        ],
+        "diet_tags": [
+          "益气",
+          "养阴"
+        ],
+        "diet_notes": "麦冬、百合、银耳；忌辛辣",
+        "contraindications": [
+          "辛辣"
+        ],
+        "exercise_note": "强度宜低，避免大汗"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "C2",
+    "pattern": "气阴两虚",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "益气养阴",
+        "acupoints": [
+          "三阴交",
+          "太溪",
+          "神门"
+        ],
+        "diet_tags": [
+          "益气",
+          "养阴"
+        ],
+        "diet_notes": "麦冬、百合、银耳；忌辛辣",
+        "contraindications": [
+          "辛辣"
+        ],
+        "exercise_note": "强度宜低，避免大汗"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "C3",
+    "pattern": "气阴两虚",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "益气养阴",
+        "acupoints": [
+          "三阴交",
+          "太溪",
+          "神门"
+        ],
+        "diet_tags": [
+          "益气",
+          "养阴"
+        ],
+        "diet_notes": "麦冬、百合、银耳；忌辛辣",
+        "contraindications": [
+          "辛辣"
+        ],
+        "exercise_note": "强度宜低，避免大汗"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "D1",
+    "pattern": "心血瘀阻",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "活血化瘀",
+        "acupoints": [
+          "血海",
+          "膈俞",
+          "心俞"
+        ],
+        "diet_tags": [
+          "活血",
+          "化瘀"
+        ],
+        "diet_notes": "山楂、黑木耳",
+        "contraindications": [
+          "出血倾向"
+        ],
+        "exercise_note": "强度谨慎，密切监测症状"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "D2",
+    "pattern": "心血瘀阻",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "活血化瘀",
+        "acupoints": [
+          "血海",
+          "膈俞",
+          "心俞"
+        ],
+        "diet_tags": [
+          "活血",
+          "化瘀"
+        ],
+        "diet_notes": "山楂、黑木耳",
+        "contraindications": [
+          "出血倾向"
+        ],
+        "exercise_note": "强度谨慎，密切监测症状"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "D3",
+    "pattern": "心血瘀阻",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "活血化瘀",
+        "acupoints": [
+          "血海",
+          "膈俞",
+          "心俞"
+        ],
+        "diet_tags": [
+          "活血",
+          "化瘀"
+        ],
+        "diet_notes": "山楂、黑木耳",
+        "contraindications": [
+          "出血倾向"
+        ],
+        "exercise_note": "强度谨慎，密切监测症状"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "E1",
+    "pattern": "阳虚水泛",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "温阳利水",
+        "acupoints": [
+          "关元",
+          "气海",
+          "水分"
+        ],
+        "diet_tags": [
+          "温阳",
+          "利水"
+        ],
+        "diet_notes": "生姜、桂枝类；严格限盐限水",
+        "contraindications": [
+          "高盐"
+        ],
+        "exercise_note": "L0–L1 起步，每日体重监测"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "E2",
+    "pattern": "阳虚水泛",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "温阳利水",
+        "acupoints": [
+          "关元",
+          "气海",
+          "水分"
+        ],
+        "diet_tags": [
+          "温阳",
+          "利水"
+        ],
+        "diet_notes": "生姜、桂枝类；严格限盐限水",
+        "contraindications": [
+          "高盐"
+        ],
+        "exercise_note": "L0–L1 起步，每日体重监测"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "E3",
+    "pattern": "阳虚水泛",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "温阳利水",
+        "acupoints": [
+          "关元",
+          "气海",
+          "水分"
+        ],
+        "diet_tags": [
+          "温阳",
+          "利水"
+        ],
+        "diet_notes": "生姜、桂枝类；严格限盐限水",
+        "contraindications": [
+          "高盐"
+        ],
+        "exercise_note": "L0–L1 起步，每日体重监测"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "F1",
+    "pattern": "肝阳上亢",
+    "risk_level": "低危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L2",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 30,
+        "cooldown_min": 5,
+        "frequency_per_week": 5,
+        "rpe_range": [
+          12,
+          14
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.6,
+          0.7
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 3
+      },
+      "tcm": {
+        "method": "平肝潜阳",
+        "acupoints": [
+          "太冲",
+          "风池",
+          "曲池"
+        ],
+        "diet_tags": [
+          "平肝",
+          "潜阳"
+        ],
+        "diet_notes": "芹菜、菊花、决明子；限盐",
+        "contraindications": [
+          "高盐",
+          "屏气用力"
+        ],
+        "exercise_note": "避免屏气用力，禁高强度抗阻"
+      },
+      "weekly_volume_target_min": 150,
+      "follow_up_interval_days": 30
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "F2",
+    "pattern": "肝阳上亢",
+    "risk_level": "中危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L1",
+      "aerobic": {
+        "types": [
+          "步行",
+          "功率车"
+        ],
+        "warmup_min": 5,
+        "duration_min": 25,
+        "cooldown_min": 5,
+        "frequency_per_week": 4,
+        "rpe_range": [
+          11,
+          13
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.5,
+          0.6
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 2,
+        "reps": 12,
+        "frequency_per_week": 2
+      },
+      "tcm": {
+        "method": "平肝潜阳",
+        "acupoints": [
+          "太冲",
+          "风池",
+          "曲池"
+        ],
+        "diet_tags": [
+          "平肝",
+          "潜阳"
+        ],
+        "diet_notes": "芹菜、菊花、决明子；限盐",
+        "contraindications": [
+          "高盐",
+          "屏气用力"
+        ],
+        "exercise_note": "避免屏气用力，禁高强度抗阻"
+      },
+      "weekly_volume_target_min": 100,
+      "follow_up_interval_days": 14
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_PCI",
+    "matrix_code": "F3",
+    "pattern": "肝阳上亢",
+    "risk_level": "高危",
+    "phase": "II",
+    "week_range_json": [
+      1,
+      12
+    ],
+    "output_json": {
+      "baduanjin_level": "L0",
+      "aerobic": {
+        "types": [
+          "步行"
+        ],
+        "warmup_min": 5,
+        "duration_min": 20,
+        "cooldown_min": 5,
+        "frequency_per_week": 3,
+        "rpe_range": [
+          11,
+          12
+        ],
+        "hr_formula": "resting + k*(max - resting)",
+        "k_range": [
+          0.4,
+          0.5
+        ]
+      },
+      "resistance": {
+        "enabled": true,
+        "type": "弹力带/自重",
+        "sets": 1,
+        "reps": 10,
+        "frequency_per_week": 1
+      },
+      "tcm": {
+        "method": "平肝潜阳",
+        "acupoints": [
+          "太冲",
+          "风池",
+          "曲池"
+        ],
+        "diet_tags": [
+          "平肝",
+          "潜阳"
+        ],
+        "diet_notes": "芹菜、菊花、决明子；限盐",
+        "contraindications": [
+          "高盐",
+          "屏气用力"
+        ],
+        "exercise_note": "避免屏气用力，禁高强度抗阻"
+      },
+      "weekly_volume_target_min": 90,
+      "follow_up_interval_days": 7
+    },
+    "enabled": 1
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "pattern_name": "气虚血瘀",
+    "features_json": {
+      "symptoms": ["胸闷隐痛", "乏力气短", "动则加重"],
+      "tongue": "舌暗有瘀斑",
+      "pulse": "脉细涩",
+      "keywords": ["胸闷隐痛", "乏力", "气短", "动则加重", "舌暗", "瘀斑", "脉细", "脉涩"]
+    },
+    "comorbidity_json": {"desc": "最常见，占比通常最高"},
+    "enabled": 1
+  },
+  {
+    "pattern_name": "痰浊闭阻",
+    "features_json": {
+      "symptoms": ["胸闷如窒", "体胖", "痰多"],
+      "tongue": "苔厚腻",
+      "pulse": "脉滑",
+      "keywords": ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"]
+    },
+    "comorbidity_json": {"desc": "常合并代谢综合征"},
+    "enabled": 1
+  },
+  {
+    "pattern_name": "气阴两虚",
+    "features_json": {
+      "symptoms": ["心悸乏力", "口干", "五心烦热"],
+      "tongue": "舌红少苔",
+      "pulse": "脉细数",
+      "keywords": ["心悸", "乏力", "口干", "五心烦热", "舌红", "少苔", "脉细", "脉数"]
+    },
+    "comorbidity_json": {"desc": "常见于老年、糖尿病"},
+    "enabled": 1
+  },
+  {
+    "pattern_name": "心血瘀阻",
+    "features_json": {
+      "symptoms": ["胸痛固定", "夜间加重"],
+      "tongue": "舌紫暗",
+      "pulse": "脉涩",
+      "keywords": ["胸痛固定", "夜间加重", "舌紫暗", "脉涩"]
+    },
+    "comorbidity_json": {"desc": "症状较重者"},
+    "enabled": 1
+  },
+  {
+    "pattern_name": "阳虚水泛",
+    "features_json": {
+      "symptoms": ["畏寒肢冷", "下肢浮肿", "气促"],
+      "tongue": "舌淡胖",
+      "pulse": "脉沉细",
+      "keywords": ["畏寒", "肢冷", "下肢浮肿", "气促", "舌淡胖", "脉沉", "脉细"]
+    },
+    "comorbidity_json": {"desc": "合并心衰"},
+    "enabled": 1
+  },
+  {
+    "pattern_name": "肝阳上亢",
+    "features_json": {
+      "symptoms": ["头晕头痛", "烦躁易怒", "面红"],
+      "tongue": "舌红",
+      "pulse": "脉弦",
+      "keywords": ["头晕", "头痛", "烦躁", "易怒", "面红", "舌红", "脉弦"]
+    },
+    "comorbidity_json": {"desc": "合并高血压"},
+    "enabled": 1
+  }
+]
