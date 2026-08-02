@@ -32,9 +32,24 @@
       }
     },
     "contraindication_json": null,
-    "baduanjin_start_json": null,
+    "baduanjin_start_json": {
+      "start_mapping": {"高危": "L0", "中危": "L1", "低危": "L2"},
+      "upgrade_cond": "连续 1 周完成率≥80% + RPE≤13 + 无预警",
+      "downgrade_cond": "出现红色预警 或 连续 3 次 RPE≥15",
+      "phase_role": {
+        "I": "八段锦为主要运动形式",
+        "II": "作为热身与整理（各 10 分钟）+ 有氧主体",
+        "III": "居家维持核心，每日 1–2 次"
+      }
+    },
     "followup_template_json": null,
-    "alert_special_json": null,
+    "alert_special_json": {
+      "note": "CAD_PCI 病种特有预警（第一版）",
+      "items": [
+        {"name": "抗血小板漏服预警", "metric": "missed_antiplatelet", "threshold": "≥2次/周", "level": "黄色", "window": "术后持续"},
+        {"name": "穿刺点出血/血肿", "metric": "puncture_site", "threshold": "任何出血/血肿", "level": "红色", "window": "术后7天内"}
+      ]
+    },
     "version": "0.1",
     "effective_date": "2026-08-03"
   },

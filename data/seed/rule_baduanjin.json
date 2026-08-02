@@ -1,0 +1,42 @@
+[
+  {
+    "level_code": "L0",
+    "posture": "卧位/床边坐位",
+    "moves_json": ["双手托天理三焦（简化）", "调理脾胃须单举（简化）", "摇头摆尾去心火（上肢部分）"],
+    "met_est": 1.75,
+    "applicable": "I期，术后 1–3 天；高危",
+    "enabled": 1
+  },
+  {
+    "level_code": "L1",
+    "posture": "坐位",
+    "moves_json": ["完整八式坐位版（动作幅度减半）"],
+    "met_est": 2.25,
+    "applicable": "I期后段；高危/中危过渡",
+    "enabled": 1
+  },
+  {
+    "level_code": "L2",
+    "posture": "站位",
+    "moves_json": ["完整八式（低幅度，去除深蹲与大幅转体）"],
+    "met_est": 2.75,
+    "applicable": "II期，中危",
+    "enabled": 1
+  },
+  {
+    "level_code": "L3",
+    "posture": "站位",
+    "moves_json": ["标准完整八式（双手托天理三焦、左右开弓似射雕、调理脾胃须单举、五劳七伤往后瞧、摇头摆尾去心火、两手攀足固肾腰、攒拳怒目增气力、背后七颠百病消）"],
+    "met_est": 3.5,
+    "applicable": "II期后段 / III期，低危",
+    "enabled": 1
+  },
+  {
+    "level_code": "L3+",
+    "posture": "站位",
+    "moves_json": ["标准八式 + 重复2遍", "标准八式 + 配合呼吸强化"],
+    "met_est": 4.0,
+    "applicable": "III期维持，低危且耐受良好",
+    "enabled": 1
+  }
+]

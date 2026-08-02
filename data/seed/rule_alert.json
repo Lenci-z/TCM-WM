@@ -1,0 +1,203 @@
+[
+  {
+    "rule_code": "ALERT-R-001",
+    "level": "红色",
+    "name": "静息或活动中胸痛发作",
+    "condition_json": {"metric": "chest_pain", "op": "eq", "value": true},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms"], "urgency": "immediate"},
+      {"type": "notify_patient", "message": "立即停止运动并联系医师"},
+      {"type": "suspend_exercise", "duration_hours": 48},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-002",
+    "level": "红色",
+    "name": "静息心率异常",
+    "condition_json": {"metric": "resting_hr", "op": "out_of_range", "min": 50, "max": 100, "unit": "bpm"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms"], "urgency": "immediate"},
+      {"type": "notify_patient", "message": "心率异常，暂停运动"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-003",
+    "level": "红色",
+    "name": "收缩压异常",
+    "condition_json": {"metric": "SBP", "op": "out_of_range", "min": 90, "max": 180, "unit": "mmHg"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms"], "urgency": "immediate"},
+      {"type": "suspend_exercise", "duration_hours": 24},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-004",
+    "level": "红色",
+    "name": "体重快速增加提示心衰",
+    "condition_json": {"metric": "weight", "op": "delta_increase", "window_days": 3, "threshold_kg": 2.0, "unit": "kg"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["阳虚水泛", "*"], "risk_level": ["中危", "高危"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms"], "urgency": "immediate"},
+      {"type": "notify_patient", "message": "template_weight_alert"},
+      {"type": "suspend_exercise", "duration_hours": 48},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-005",
+    "level": "红色",
+    "name": "晕厥或先兆晕厥",
+    "condition_json": {"metric": "syncope", "op": "eq", "value": true},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms", "phone"], "urgency": "immediate"},
+      {"type": "suspend_exercise", "duration_hours": 72},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-006",
+    "level": "红色",
+    "name": "新发气促、夜间不能平卧",
+    "condition_json": {"metric": "dyspnea", "op": "eq", "value": "new_or_orthopnea"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app", "sms"], "urgency": "immediate"},
+      {"type": "suspend_exercise", "duration_hours": 48},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-R-007",
+    "level": "红色",
+    "name": "连续 3 次上报 RPE ≥17",
+    "condition_json": {"metric": "self_rpe", "op": "consecutive_gte", "count": 3, "threshold": 17},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "immediate"},
+      {"type": "downgrade_exercise"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 24}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-001",
+    "level": "黄色",
+    "name": "危险因素未达标",
+    "condition_json": {"metric": "risk_factor", "op": "any_not_met", "items": ["LDL_C", "BP", "HbA1c"]},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-002",
+    "level": "黄色",
+    "name": "漏服抗血小板药 ≥2 次/周",
+    "condition_json": {"metric": "missed_antiplatelet", "op": "gte", "value": 2, "unit": "次/周"},
+    "applicable_json": {"disease_category": ["CAD_PCI", "CAD_CABG"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "notify_patient", "message": "抗血小板药物依从性提醒"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-003",
+    "level": "黄色",
+    "name": "连续 2 个随访周期未上传数据",
+    "condition_json": {"metric": "upload_gap", "op": "consecutive_missed", "count": 2, "unit": "周期"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-004",
+    "level": "黄色",
+    "name": "RPE 持续 14–16",
+    "condition_json": {"metric": "self_rpe", "op": "sustained_range", "min": 14, "max": 16},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-005",
+    "level": "黄色",
+    "name": "PHQ-9 ≥10 或 GAD-7 ≥10",
+    "condition_json": {"metric": "phq9_or_gad7", "op": "gte", "value": 10},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "notify_patient", "message": "心理健康自评提醒"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-006",
+    "level": "黄色",
+    "name": "运动完成率 <50%",
+    "condition_json": {"metric": "completion_rate", "op": "lt", "value": 50, "unit": "%"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-Y-007",
+    "level": "黄色",
+    "name": "体重较基线增加 >3%",
+    "condition_json": {"metric": "weight", "op": "delta_pct_increase", "threshold_pct": 3.0, "unit": "%"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_physician", "channel": ["app"], "urgency": "normal"},
+      {"type": "create_task", "assignee": "responsible_physician", "due_hours": 72}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-B-001",
+    "level": "蓝色",
+    "name": "连续达标激励",
+    "condition_json": {"metric": "streak", "op": "consecutive_met", "count": 1},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_patient", "message": "template_encouragement"}
+    ],
+    "enabled": 1
+  },
+  {
+    "rule_code": "ALERT-B-002",
+    "level": "蓝色",
+    "name": "随访临近提醒",
+    "condition_json": {"metric": "followup_due", "op": "days_before", "value": 3, "unit": "天"},
+    "applicable_json": {"disease_category": ["*"], "pattern": ["*"], "risk_level": ["*"]},
+    "actions_json": [
+      {"type": "notify_patient", "message": "随访日期临近提醒"}
+    ],
+    "enabled": 1
+  }
+]
