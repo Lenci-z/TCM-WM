@@ -31,7 +31,14 @@
         ]
       }
     },
-    "contraindication_json": null,
+    "contraindication_json": {
+      "note": "CAD_PCI 病种特异禁忌（经皮入路，以穿刺点保护为主）",
+      "items": [
+        {"name": "股动脉入路穿刺点保护", "rule": "术后 24–72h 避免穿刺侧髋关节过度屈曲与负重，避免久坐", "level": "warning", "window": "术后3天内"},
+        {"name": "桡动脉入路保护", "rule": "术后 7 天内避免穿刺侧腕部过度用力与提重物", "level": "warning", "window": "术后7天内"},
+        {"name": "双重抗血小板治疗出血风险", "rule": "DAPT 期间避免碰撞性运动与跌倒风险高的活动，注意皮肤黏膜出血", "level": "warning", "window": "DAPT期间"}
+      ]
+    },
     "baduanjin_start_json": {
       "start_mapping": {"高危": "L0", "中危": "L1", "低危": "L2"},
       "upgrade_cond": "连续 1 周完成率≥80% + RPE≤13 + 无预警",

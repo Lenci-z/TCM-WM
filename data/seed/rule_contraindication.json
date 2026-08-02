@@ -1,0 +1,124 @@
+[
+  {
+    "disease_category": "*",
+    "pattern": "肝阳上亢",
+    "risk_level": "*",
+    "name": "避免屏气用力，禁高强度抗阻",
+    "rule_json": {
+      "action": "block_resistance",
+      "detail": "Valsalva 屏气用力升高血压，禁高强度抗阻训练；八段锦去除屏气动作",
+      "level": "block"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "阳虚水泛",
+    "risk_level": "*",
+    "name": "L0–L1 起步，每日体重监测",
+    "rule_json": {
+      "action": "limit_intensity",
+      "detail": "运动以八段锦 L0–L1 起步；每日称重，3 日内体重增加 >2kg 立即停止并联系医师",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "气阴两虚",
+    "risk_level": "*",
+    "name": "强度宜低，避免大汗",
+    "rule_json": {
+      "action": "limit_intensity",
+      "detail": "运动强度宜低，避免大汗淋漓；以 RPE 上限为硬限制",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "心血瘀阻",
+    "risk_level": "*",
+    "name": "强度谨慎，密切监测症状",
+    "rule_json": {
+      "action": "monitor_symptoms",
+      "detail": "运动强度谨慎，运动中密切监测胸痛/心悸等症状，出现即停",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "痰浊闭阻",
+    "risk_level": "*",
+    "name": "控制体重为首要目标",
+    "rule_json": {
+      "action": "volume_focus",
+      "detail": "以增加有氧总时长、控制体重为首要目标",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "气虚血瘀",
+    "risk_level": "*",
+    "name": "强度宜缓",
+    "rule_json": {
+      "action": "limit_intensity",
+      "detail": "运动强度宜缓，避免剧烈运动，注意劳逸结合",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "*",
+    "risk_level": "高危",
+    "name": "高危禁止独自运动",
+    "rule_json": {
+      "action": "supervision_required",
+      "detail": "高危患者在监护下运动，禁止独自进行中高强度运动",
+      "level": "block"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "*",
+    "pattern": "*",
+    "risk_level": "*",
+    "name": "抗凝未稳定禁抗阻与碰撞运动",
+    "rule_json": {
+      "action": "block_resistance",
+      "detail": "抗凝治疗中（INR 未稳定）避免抗阻训练与有碰撞风险的运动，注意穿刺点保护",
+      "level": "warning"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "CAD_CABG",
+    "pattern": "*",
+    "risk_level": "*",
+    "name": "胸骨正中切口术后限制上肢负重",
+    "rule_json": {
+      "action": "block_upper_limb",
+      "detail": "胸骨正中切口术后 8–12 周内限制上肢负重与扩胸动作；八段锦避开上肢发力招式",
+      "level": "block",
+      "window": "术后8-12周"
+    },
+    "enabled": 1
+  },
+  {
+    "disease_category": "VALVE_POST",
+    "pattern": "*",
+    "risk_level": "*",
+    "name": "瓣膜术后胸骨愈合期限制",
+    "rule_json": {
+      "action": "block_upper_limb",
+      "detail": "瓣膜术后 8–12 周内限制上肢负重与扩胸动作，避免胸骨愈合不良",
+      "level": "block",
+      "window": "术后8-12周"
+    },
+    "enabled": 1
+  }
+]
