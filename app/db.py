@@ -379,7 +379,12 @@ def import_seed(db_path: str = DB_PATH, seed_dir: str = SEED_DIR) -> dict:
             conn.execute(f"DELETE FROM {table}")
             n = 0
             for row in rows:
-                values = [row.get(c) for c in cols]
+                values = []
+                for c in cols:
+                    v = row.get(c)
+                    if isinstance(v, (dict, list)):
+                        v = json.dumps(v, ensure_ascii=False)
+                    values.append(v)
                 conn.execute(
                     f"INSERT INTO {table} ({colnames}) VALUES ({placeholders})",
                     values,

@@ -3,7 +3,34 @@
     "disease_category": "CAD_PCI",
     "name": "冠心病 PCI 术后",
     "enabled": 1,
-    "strat_threshold_json": null,
+    "strat_threshold_json": {
+      "version": "0.1",
+      "logic": "满足任一即达本级，按 高危→中危→低危 逐级判定",
+      "levels": {
+        "高危": [
+          {"metric": "LVEF", "op": "lt", "value": 40, "unit": "%", "desc": "LVEF <40%"},
+          {"metric": "arrhythmia", "op": "eq", "value": "complex_ventricular", "desc": "复杂室性心律失常"},
+          {"metric": "exercise_symptom", "op": "eq", "value": "angina_or_st_dep", "desc": "运动中出现心绞痛或 ST 压低 ≥1mm"},
+          {"metric": "exercise_bp_response", "op": "eq", "value": "no_rise_or_fall", "desc": "运动中收缩压不升或下降"},
+          {"metric": "met_capacity", "op": "lt", "value": 5, "unit": "METs", "desc": "运动能力 <5 METs"},
+          {"metric": "heart_failure_acute", "op": "eq", "value": true, "desc": "心衰急性期"},
+          {"metric": "residual_ischemia", "op": "eq", "value": true, "desc": "未完全血运重建且有残余缺血"}
+        ],
+        "中危": [
+          {"metric": "LVEF", "op": "range", "min": 40, "max": 49, "unit": "%", "desc": "LVEF 40–49%"},
+          {"metric": "revascularization_status", "op": "eq", "value": "incomplete_no_ischemia", "desc": "不完全血运重建但无残余缺血证据"},
+          {"metric": "met_capacity", "op": "range", "min": 5, "max": 7, "unit": "METs", "desc": "运动能力 5–7 METs"},
+          {"metric": "mild_symptom_moderate", "op": "eq", "value": true, "desc": "中等强度下出现轻度症状"}
+        ],
+        "低危": [
+          {"metric": "LVEF", "op": "gte", "value": 50, "unit": "%", "desc": "LVEF ≥50%"},
+          {"metric": "complete_revascularization", "op": "eq", "value": true, "desc": "完全血运重建"},
+          {"metric": "exercise_test_clean", "op": "eq", "value": true, "desc": "运动试验无缺血、无复杂室性心律失常"},
+          {"metric": "met_capacity", "op": "gte", "value": 7, "unit": "METs", "desc": "运动能力 ≥7 METs"},
+          {"metric": "heart_failure_symptom", "op": "eq", "value": false, "desc": "无心衰症状"}
+        ]
+      }
+    },
     "contraindication_json": null,
     "baduanjin_start_json": null,
     "followup_template_json": null,
