@@ -251,17 +251,8 @@ SCHEMA = {
         )
     """,
     # ---------- 规则层表（★核心IP★ 规则外置，GUI 可视化维护） ----------
-    # 危险分层规则（按病种参数集）
-    "rule_stratification": """
-        CREATE TABLE IF NOT EXISTS rule_stratification (
-            rule_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            disease_category TEXT NOT NULL,
-            risk_level     TEXT NOT NULL,                    -- 低危/中危/高危
-            condition_json TEXT NOT NULL,                    -- 判定条件(JSON)，满足任一即达此级
-            priority       INTEGER DEFAULT 0,
-            enabled        INTEGER NOT NULL DEFAULT 1
-        )
-    """,
+    # 注：危险分层阈值/病种特异禁忌/八段锦起始映射/随访模板 属病种参数集，
+    #     存于 disease_config 的 JSON 字段（文档 3.3 定义），避免双源不一致。
     # 证型特征库
     "rule_tcm_pattern": """
         CREATE TABLE IF NOT EXISTS rule_tcm_pattern (

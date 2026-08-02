@@ -1,0 +1,86 @@
+[
+  {
+    "disease_category": "CAD_PCI",
+    "name": "冠心病 PCI 术后",
+    "enabled": 1,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "CAD_CABG",
+    "name": "冠心病 CABG 术后",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "CAD_MED",
+    "name": "稳定性冠心病（药物治疗）",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "VALVE_POST",
+    "name": "瓣膜术后",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "DEVICE_POST",
+    "name": "起搏器/ICD 植入后",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "HF_STABLE",
+    "name": "慢性心衰稳定期",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  },
+  {
+    "disease_category": "PAD",
+    "name": "外周动脉疾病",
+    "enabled": 0,
+    "strat_threshold_json": null,
+    "contraindication_json": null,
+    "baduanjin_start_json": null,
+    "followup_template_json": null,
+    "alert_special_json": null,
+    "version": "0.1",
+    "effective_date": "2026-08-03"
+  }
+]
