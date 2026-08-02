@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 运行时数据库（种子数据 JSON 保留入库）
+*.db
+*.sqlite
+*.sqlite3
+
+# 输出产物
+*.pdf
+outputs/
+
+# Hermes
+.hermes/plans/
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
