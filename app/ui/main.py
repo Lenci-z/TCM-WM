@@ -108,6 +108,8 @@ class MainApp(tk.Tk):
 
         # 登录流（P3-T2）：require_login 时弹登录/初始化管理员窗口
         if self._require_login:
+            # 先登录后进主界面：登录成功前主窗口不可见（模态语义）
+            self.withdraw()
             self._start_login()
         else:
             self._refresh_user_bar()
@@ -123,10 +125,12 @@ class MainApp(tk.Tk):
             LoginView(self, self.auth, mode="login", on_success=self._on_login_success)
 
     def _on_login_success(self, token: str) -> None:
-        """登录成功回调：保存 token + 刷新用户栏 + 按角色应用权限。"""
+        """登录成功回调：保存 token + 刷新用户栏 + 按角色应用权限 + 显示主窗口。"""
         self.current_token = token
         self._refresh_user_bar()
         self._apply_permissions()
+        self.deiconify()  # 登录成功，显示主界面
+        self.lift()
         user = self.auth.get_current_user(token)
         if user:
             self.status_var.set(f"已登录：{user.get('display_name') or user.get('username')}（{user.get('role')}）")
