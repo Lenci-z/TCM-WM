@@ -10,7 +10,6 @@ from tkinter import ttk, messagebox
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import get_conn, encrypt_text, decrypt_text, insert_row, update_row
 from log import get_logger
 
 
@@ -21,7 +20,6 @@ class PatientView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-        self.conn = app.conn
         self.current_pid = None  # 当前编辑的患者 id（None=新建）
 
         # 左右分栏
@@ -130,23 +128,16 @@ class PatientView(ttk.Frame):
         return date.today().isoformat()
 
     def _enabled_diseases(self):
-        rows = self.conn.execute(
-            "SELECT disease_category FROM disease_config WHERE enabled=1 ORDER BY disease_category"
-        ).fetchall()
-        return [r["disease_category"] for r in rows] or ["CAD_PCI"]
+        return self.app.repo.get_enabled_diseases() or ["CAD_PCI"]
 
     def refresh(self):
-        """刷新患者列表。"""
+        """刷新患者列表（repo 解密返回明文）。"""
         for item in self.tree.get_children():
             self.tree.delete(item)
-        rows = self.conn.execute(
-            "SELECT patient_id, name_enc, gender, birth_date, disease_category, status, physician "
-            "FROM patient ORDER BY patient_id DESC"
-        ).fetchall()
-        for r in rows:
-            self.tree.insert("", "end", iid=str(r["patient_id"]), values=(
-                r["patient_id"], decrypt_text(r["name_enc"]), r["gender"] or "",
-                r["birth_date"] or "", r["disease_category"], r["status"], r["physician"] or ""))
+        for p in self.app.repo.list_patients():
+            self.tree.insert("", "end", iid=str(p["patient_id"]), values=(
+                p["patient_id"], p["name"], p["gender"] or "",
+                p["birth_date"] or "", p["disease_category"], p["status"], p["physician"] or ""))
 
     def _on_select(self, event):
         sel = self.tree.selection()
@@ -159,23 +150,21 @@ class PatientView(ttk.Frame):
             messagebox.showinfo("提示", "请先在列表中选择患者")
             return
         pid = int(self.tree.selection()[0])
-        p = self.conn.execute("SELECT * FROM patient WHERE patient_id=?", (pid,)).fetchone()
+        p = self.app.repo.get_patient(pid)
         if not p:
             return
         self.current_pid = pid
-        self.vars["name"].delete(0, "end"); self.vars["name"].insert(0, decrypt_text(p["name_enc"]) or "")
+        self.vars["name"].delete(0, "end"); self.vars["name"].insert(0, p["name"] or "")
         self.vars["gender"].set(p["gender"] or "")
         self.vars["birth_date"].delete(0, "end"); self.vars["birth_date"].insert(0, p["birth_date"] or "")
-        self.vars["contact"].delete(0, "end"); self.vars["contact"].insert(0, decrypt_text(p["contact_enc"]) or "")
+        self.vars["contact"].delete(0, "end"); self.vars["contact"].insert(0, p["contact"] or "")
         self.vars["inpatient_no"].delete(0, "end"); self.vars["inpatient_no"].insert(0, p["inpatient_no"] or "")
         self.vars["physician"].delete(0, "end"); self.vars["physician"].insert(0, p["physician"] or "")
         self.vars["register_date"].delete(0, "end"); self.vars["register_date"].insert(0, p["register_date"] or "")
         self.vars["status"].set(p["status"] or "建档")
         self.vars["disease_category"].set(p["disease_category"] or "CAD_PCI")
         # procedure（取最新一条）
-        proc = self.conn.execute(
-            "SELECT * FROM procedure WHERE patient_id=? ORDER BY procedure_id DESC LIMIT 1", (pid,)
-        ).fetchone()
+        proc = self.app.repo.get_procedure(pid)
         for var in self.pvars.values():
             if isinstance(var, ttk.Combobox):
                 var.set("")
@@ -221,10 +210,10 @@ class PatientView(ttk.Frame):
             return
         reg = self.vars["register_date"].get().strip() or self._today()
         patient_data = {
-            "name_enc": encrypt_text(name),
+            "name": name,
             "gender": self.vars["gender"].get() or None,
             "birth_date": self.vars["birth_date"].get().strip() or None,
-            "contact_enc": encrypt_text(self.vars["contact"].get().strip()) if self.vars["contact"].get().strip() else None,
+            "contact": self.vars["contact"].get().strip() or None,
             "inpatient_no": self.vars["inpatient_no"].get().strip() or None,
             "register_date": reg,
             "physician": self.vars["physician"].get().strip() or None,
@@ -233,13 +222,13 @@ class PatientView(ttk.Frame):
         }
         try:
             if self.current_pid is None:
-                pid = insert_row(self.conn, "patient", patient_data)
+                pid = self.app.repo.insert_patient(patient_data)
                 self.current_pid = pid
                 # 同步建档 → 创建 procedure
                 self._save_procedure(pid)
                 msg = f"已建档 #{pid}"
             else:
-                update_row(self.conn, "patient", patient_data, "patient_id=?", (self.current_pid,))
+                self.app.repo.update_patient(self.current_pid, patient_data)
                 self._save_procedure(self.current_pid)
                 msg = f"已更新 #{self.current_pid}"
             self.refresh()
@@ -267,14 +256,11 @@ class PatientView(ttk.Frame):
             "incision_type": self.pvars["incision_type"].get() or None,
             "anticoagulation": self.pvars["anticoagulation"].get() or None,
         }
-        existing = self.conn.execute(
-            "SELECT procedure_id FROM procedure WHERE patient_id=? ORDER BY procedure_id DESC LIMIT 1",
-            (pid,),
-        ).fetchone()
+        existing = self.app.repo.get_procedure_id(pid)
         if existing:
-            update_row(self.conn, "procedure", data, "procedure_id=?", (existing["procedure_id"],))
+            self.app.repo.update_procedure(existing, data)
         else:
-            insert_row(self.conn, "procedure", data)
+            self.app.repo.insert_procedure(data)
 
     def _delete(self):
         """删除选中患者（连带手术信息；评估/处方等业务数据保留由外键约束提示）。"""
@@ -284,9 +270,7 @@ class PatientView(ttk.Frame):
         if not messagebox.askyesno("确认删除", f"确定删除患者 #{pid} 及其手术信息？\n（评估/处方等记录将被外键约束拦截，无法删除）"):
             return
         try:
-            self.conn.execute("DELETE FROM procedure WHERE patient_id=?", (pid,))
-            self.conn.execute("DELETE FROM patient WHERE patient_id=?", (pid,))
-            self.conn.commit()
+            self.app.repo.delete_patient(pid)
             self.refresh()
             self.saved_var.set(f"已删除 #{pid}")
         except Exception as e:

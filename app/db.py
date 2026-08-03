@@ -332,11 +332,18 @@ ALL_TABLES = list(SCHEMA.keys())
 # ---------- 连接与初始化 ----------
 
 def get_conn(db_path: str = DB_PATH) -> sqlite3.Connection:
-    """获取数据库连接（row 工厂 + 外键开启）。"""
+    """获取数据库连接（row 工厂 + 外键开启 + 忙等待 + WAL）。
+    P2-T5 DB 健壮性：busy_timeout=5000ms 避免单写者锁冲突报错；
+    WAL 模式提升并发读写体验（单机桌面工具适用）。
+    """
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.Error:
+        pass  # WAL 不可用时忽略（只读介质等场景）
     return conn
 
 

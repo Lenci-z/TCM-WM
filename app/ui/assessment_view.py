@@ -12,7 +12,6 @@ from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import get_conn, insert_row, update_row, decrypt_text
 from log import get_logger
 from engine.pattern import judge_pattern
 from engine.stratification import stratify
@@ -51,7 +50,6 @@ class AssessmentView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-        self.conn = app.conn
         self.current_pid = None
         self.vars = {}
         self.tongue_var = None
@@ -174,11 +172,7 @@ class AssessmentView(ttk.Frame):
 
     def _build_tcm_questionnaire(self, parent):
         """从规则库证型 keywords 生成勾选问卷。"""
-        rows = self.conn.execute("SELECT features_json FROM rule_tcm_pattern WHERE enabled=1").fetchall()
-        items = []
-        for r in rows:
-            f = json.loads(r["features_json"])
-            items.extend(f.get("keywords", []))
+        items = self.app.repo.get_pattern_keywords()
         items = list(dict.fromkeys(items))  # 去重保序
         box = ttk.Frame(parent)
         box.pack(fill="x")
@@ -206,19 +200,15 @@ class AssessmentView(ttk.Frame):
             self.pattern_var.set("")
 
     def _pattern_names(self):
-        rows = self.conn.execute("SELECT pattern_name FROM rule_tcm_pattern").fetchall()
-        return [r["pattern_name"] for r in rows]
+        return self.app.repo.get_pattern_names()
 
     # ---------- 数据 ----------
     def refresh(self):
         for item in self.patient_tree.get_children():
             self.patient_tree.delete(item)
-        rows = self.conn.execute(
-            "SELECT patient_id, name_enc, disease_category FROM patient ORDER BY patient_id DESC"
-        ).fetchall()
-        for r in rows:
-            self.patient_tree.insert("", "end", iid=str(r["patient_id"]), values=(
-                r["patient_id"], decrypt_text(r["name_enc"]), r["disease_category"]))
+        for p in self.app.repo.list_patients():
+            self.patient_tree.insert("", "end", iid=str(p["patient_id"]), values=(
+                p["patient_id"], p["name"], p["disease_category"]))
 
     def _on_patient_select(self, event):
         sel = self.patient_tree.selection()
@@ -231,7 +221,7 @@ class AssessmentView(ttk.Frame):
         for item in self.history.get_children():
             self.history.delete(item)
         # 每个评估取最新一条分层（LEFT JOIN 子查询，避免一对多重复行）
-        rows = self.conn.execute(
+        rows = self.app.repo.query_all(
             "SELECT a.assessment_id, a.assessment_type, a.assess_date, r.risk_level "
             "FROM assessment a "
             "LEFT JOIN risk_stratification r ON r.strat_id = ("
@@ -240,7 +230,7 @@ class AssessmentView(ttk.Frame):
             "  ORDER BY s.strat_id DESC LIMIT 1) "
             "WHERE a.patient_id=? ORDER BY a.assess_date DESC, a.assessment_id DESC",
             (self.current_pid,)
-        ).fetchall()
+        )
         for r in rows:
             self.history.insert("", "end", iid=str(r["assessment_id"]), values=(
                 r["assessment_id"], r["assessment_type"], r["assess_date"], r["risk_level"] or ""))
@@ -250,7 +240,7 @@ class AssessmentView(ttk.Frame):
         if not sel:
             return
         aid = int(sel[0])
-        a = self.conn.execute("SELECT * FROM assessment WHERE assessment_id=?", (aid,)).fetchone()
+        a = self.app.repo.get_assessment(aid)
         if not a:
             return
         for key, var in self.vars.items():
@@ -263,10 +253,7 @@ class AssessmentView(ttk.Frame):
         self.head_var["date"].delete(0, "end")
         self.head_var["date"].insert(0, a["assess_date"])
         # 四诊与证型
-        t = self.conn.execute(
-            "SELECT * FROM tcm_pattern WHERE patient_id=? AND assess_date=? ORDER BY pattern_id DESC LIMIT 1",
-            (self.current_pid, a["assess_date"]),
-        ).fetchone()
+        t = self.app.repo.get_tcm_pattern_by_date(self.current_pid, a["assess_date"])
         if t and t["four_diag_json"]:
             for k in self.tcm_checks:
                 self.tcm_checks[k].set(False)
@@ -292,10 +279,7 @@ class AssessmentView(ttk.Frame):
         """从当前患者读取病种（第一版启用 CAD_PCI，多病种架构预留）。"""
         if self.current_pid is None:
             return "CAD_PCI"
-        row = self.conn.execute(
-            "SELECT disease_category FROM patient WHERE patient_id=?", (self.current_pid,)
-        ).fetchone()
-        return (row["disease_category"] if row and row["disease_category"] else "CAD_PCI")
+        return self.app.repo.get_patient_disease_category(self.current_pid)
 
     def _get_assessment_data(self):
         data = {"patient_id": self.current_pid, "disease_category": self._disease_category(),
@@ -316,7 +300,7 @@ class AssessmentView(ttk.Frame):
         data = self._get_assessment_data()
         try:
             # 1. 保存评估
-            aid = insert_row(self.conn, "assessment", data)
+            aid = self.app.repo.insert_assessment(data)
 
             # 2. 证型：勾选 → 判定 → 医师可改判 → tcm_pattern
             selected = [k for k, v in self.tcm_checks.items() if v.get()]
@@ -336,7 +320,7 @@ class AssessmentView(ttk.Frame):
                 "judge_method": "医师" if self.confirm_flag.get() else "系统",
                 "physician_confirm": 1 if self.confirm_flag.get() else 0,
             }
-            insert_row(self.conn, "tcm_pattern", tcm_data)
+            self.app.repo.insert_tcm_pattern(tcm_data)
 
             # 3. 危险分层：临床指标 → stratify → risk_stratification
             dc = self._disease_category()
@@ -351,7 +335,7 @@ class AssessmentView(ttk.Frame):
                 "trigger_json": json.dumps(triggered, ensure_ascii=False),
                 "physician_confirm": 1 if self.confirm_flag.get() else 0,
             }
-            insert_row(self.conn, "risk_stratification", strat_data)
+            self.app.repo.insert_risk_stratification(strat_data)
 
             self._load_history()
             self.app.set_status(f"评估已保存 #{aid} ｜ 分层：{level} ｜ 证型：{main}")
@@ -362,10 +346,7 @@ class AssessmentView(ttk.Frame):
 
     def _build_clinical(self) -> dict:
         """组装分层判定输入。"""
-        proc = self.conn.execute(
-            "SELECT complete_revascularization FROM procedure WHERE patient_id=? "
-            "ORDER BY procedure_id DESC LIMIT 1", (self.current_pid,)
-        ).fetchone()
+        proc_revasc = self.app.repo.get_procedure_complete_revasc(self.current_pid)
         clinical = {"LVEF": self.vars["LVEF"].get() or None,
                     "six_mwd": self.vars["six_mwd"].get() or None}
         try:
@@ -375,7 +356,7 @@ class AssessmentView(ttk.Frame):
                 clinical["six_mwd"] = float(clinical["six_mwd"])
         except ValueError:
             pass
-        complete = bool(proc and proc["complete_revascularization"])
+        complete = bool(proc_revasc)
         clinical["complete_revascularization"] = complete
         clinical["arrhythmia"] = "complex_ventricular" if self.svars["arrhythmia"].get() == "是" else "no"
         clinical["exercise_test_clean"] = self.svars["exercise_test"].get() == "无缺血"

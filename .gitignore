@@ -9,6 +9,8 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
+*.db-wal
+*.db-shm
 
 # 运行日志
 data/logs/

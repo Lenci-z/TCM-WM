@@ -11,7 +11,6 @@ from tkinter import ttk, messagebox
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import get_conn, update_row
 from log import get_logger
 
 
@@ -76,7 +75,6 @@ class RulesView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-        self.conn = app.conn
         self.current_type = None
         self.current_pk = None
 
@@ -152,7 +150,7 @@ class RulesView(ttk.Frame):
         else:
             if self.enable_var.get():
                 sql += " WHERE enabled=1"
-        rows = self.conn.execute(sql, params).fetchall()
+        rows = self.app.repo.query_all(sql, params)
         for r in rows:
             self.tree.insert("", "end", iid=str(r[cfg["pk"]]), values=[
                 r[f] if f != "enabled" else ("✓" if r[f] else "") for f, _, _ in cfg["columns"]])
@@ -187,7 +185,7 @@ class RulesView(ttk.Frame):
             return
         self.current_pk = int(sel[0])
         cfg = self._cfg()
-        row = self.conn.execute(f"SELECT * FROM {cfg['table']} WHERE {cfg['pk']}=?", (self.current_pk,)).fetchone()
+        row = self.app.repo.query_one(f"SELECT * FROM {cfg['table']} WHERE {cfg['pk']}=?", (self.current_pk,))
         if not row:
             return
         for f, var in self.plain_widgets.items():
@@ -225,7 +223,7 @@ class RulesView(ttk.Frame):
                 return
             data[f] = json.dumps(parsed, ensure_ascii=False)
         try:
-            update_row(self.conn, cfg["table"], data, f"{cfg['pk']}=?", (self.current_pk,))
+            self.app.repo.update_row(cfg["table"], data, f"{cfg['pk']}=?", (self.current_pk,))
         except Exception as e:
             _logger.error("规则保存失败: %s", e)
             messagebox.showerror("保存失败", str(e))

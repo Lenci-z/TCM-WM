@@ -13,8 +13,6 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import get_conn, decrypt_text
-
 
 class FollowupView(ttk.Frame):
     """随访管理：计划生成/到期提醒/复评录入。"""
@@ -22,7 +20,6 @@ class FollowupView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-        self.conn = app.conn
         self.current_pid = None
 
         left = ttk.Frame(self)
@@ -87,12 +84,9 @@ class FollowupView(ttk.Frame):
     def refresh(self):
         for item in self.patient_tree.get_children():
             self.patient_tree.delete(item)
-        rows = self.conn.execute(
-            "SELECT patient_id, name_enc, disease_category FROM patient ORDER BY patient_id DESC"
-        ).fetchall()
-        for r in rows:
-            self.patient_tree.insert("", "end", iid=str(r["patient_id"]), values=(
-                r["patient_id"], decrypt_text(r["name_enc"]), r["disease_category"]))
+        for p in self.app.repo.list_patients():
+            self.patient_tree.insert("", "end", iid=str(p["patient_id"]), values=(
+                p["patient_id"], p["name"], p["disease_category"]))
 
     def _on_patient_select(self, event):
         sel = self.patient_tree.selection()
@@ -103,28 +97,17 @@ class FollowupView(ttk.Frame):
         self._load_due()
 
     def _followup_template(self):
-        row = self.conn.execute(
-            "SELECT followup_template_json FROM disease_config WHERE disease_category='CAD_PCI'"
-        ).fetchone()
-        if not row or not row["followup_template_json"]:
+        cfg = self.app.repo.get_followup_template("CAD_PCI")
+        if not cfg:
             return []
-        return json.loads(row["followup_template_json"]).get("nodes", [])
+        return cfg.get("nodes", [])
 
     def _day0(self, pid):
-        """Day 0：手术日期优先，其次建档日期。"""
-        proc = self.conn.execute(
-            "SELECT proc_date FROM procedure WHERE patient_id=? AND proc_date IS NOT NULL "
-            "ORDER BY procedure_id DESC LIMIT 1", (pid,)
-        ).fetchone()
-        if proc:
+        """Day 0：手术日期优先，其次建档日期（repo.get_day0）。"""
+        day0_str = self.app.repo.get_day0(pid)
+        if day0_str:
             try:
-                return date.fromisoformat(proc["proc_date"])
-            except ValueError:
-                pass
-        p = self.conn.execute("SELECT register_date FROM patient WHERE patient_id=?", (pid,)).fetchone()
-        if p and p["register_date"]:
-            try:
-                return date.fromisoformat(p["register_date"][:10])
+                return date.fromisoformat(day0_str[:10])
             except ValueError:
                 pass
         return date.today()
@@ -139,18 +122,19 @@ class FollowupView(ttk.Frame):
         if not nodes:
             messagebox.showwarning("提示", "病种未配置随访模板")
             return
-        existing = {r["fu_type"] for r in self.conn.execute(
-            "SELECT fu_type FROM follow_up WHERE patient_id=?", (self.current_pid,)).fetchall()}
+        existing = set(self.app.repo.list_existing_fu_types(self.current_pid))
         n = 0
         for node in nodes:
             if node["code"] in existing:
                 continue
             plan_date = day0 + timedelta(days=node["offset_days"])
-            self.conn.execute(
-                "INSERT INTO follow_up (patient_id, plan_date, fu_type, status) VALUES (?,?,?,'待随访')",
-                (self.current_pid, plan_date.isoformat(), node["code"]))
+            self.app.repo.insert_followup({
+                "patient_id": self.current_pid,
+                "plan_date": plan_date.isoformat(),
+                "fu_type": node["code"],
+                "status": "待随访",
+            })
             n += 1
-        self.conn.commit()
         self._load_plan()
         self._load_due()
         msg = f"已生成 {n} 条随访计划（起算日 {day0}）" if n else "随访计划已齐全，无新增"
@@ -162,10 +146,7 @@ class FollowupView(ttk.Frame):
             self.fu_tree.delete(item)
         if self.current_pid is None:
             return
-        rows = self.conn.execute(
-            "SELECT fu_id, fu_type, plan_date, actual_date, status, handler "
-            "FROM follow_up WHERE patient_id=? ORDER BY plan_date", (self.current_pid,)
-        ).fetchall()
+        rows = self.app.repo.list_followups(self.current_pid)
         for r in rows:
             self.fu_tree.insert("", "end", iid=str(r["fu_id"]), values=(
                 r["fu_id"], r["fu_type"], r["plan_date"], r["actual_date"] or "",
@@ -176,10 +157,10 @@ class FollowupView(ttk.Frame):
         for item in self.due_tree.get_children():
             self.due_tree.delete(item)
         today = date.today()
-        rows = self.conn.execute(
+        rows = self.app.repo.query_all(
             "SELECT fu_id, fu_type, plan_date, status FROM follow_up "
             "WHERE status='待随访' ORDER BY plan_date"
-        ).fetchall()
+        )
         for r in rows:
             try:
                 delta = (date.fromisoformat(r["plan_date"]) - today).days
@@ -196,7 +177,7 @@ class FollowupView(ttk.Frame):
         sel = self.fu_tree.selection()
         if not sel:
             return
-        fu = self.conn.execute("SELECT * FROM follow_up WHERE fu_id=?", (int(sel[0]),)).fetchone()
+        fu = self.app.repo.get_followup(int(sel[0]))
         if not fu:
             return
         self.rec_text.delete("1.0", "end")
@@ -231,7 +212,7 @@ class FollowupView(ttk.Frame):
         if not sel:
             messagebox.showinfo("随访必查项", "请先选中一条随访计划")
             return
-        fu = self.conn.execute("SELECT fu_type FROM follow_up WHERE fu_id=?", (int(sel[0]),)).fetchone()
+        fu = self.app.repo.get_followup(int(sel[0]))
         messagebox.showinfo(f"{fu['fu_type']} 必查项", self._required_text(fu["fu_type"]))
 
     def _complete_fu(self):
@@ -241,17 +222,16 @@ class FollowupView(ttk.Frame):
             messagebox.showwarning("提示", "请先选中一条随访计划")
             return
         fid = int(sel[0])
-        fu = self.conn.execute("SELECT * FROM follow_up WHERE fu_id=?", (fid,)).fetchone()
+        fu = self.app.repo.get_followup(fid)
         record = simpledialog.askstring(
             "复评录入", f"随访类型：{fu['fu_type']}\n必查项：{self._required_text(fu['fu_type'])}\n\n复评记录（可留空）：")
         if record is None:
             return
         handler = simpledialog.askstring("完成人", "完成人（医师）：") or ""
         today = date.today().isoformat()
-        self.conn.execute(
-            "UPDATE follow_up SET actual_date=?, status='已完成', handler=?, record_json=? WHERE fu_id=?",
-            (today, handler, json.dumps({"note": record, "done_at": today}, ensure_ascii=False), fid))
-        self.conn.commit()
+        self.app.repo.update_followup_status(
+            fid, today, handler,
+            json.dumps({"note": record, "done_at": today}, ensure_ascii=False))
         self._load_plan()
         self._load_due()
         self.fu_status.set(f"随访 #{fid}（{fu['fu_type']}）已完成")

@@ -12,7 +12,6 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import get_conn, insert_row, update_row, decrypt_text
 from log import get_logger
 from engine.prescription import build_prescription, matrix_code
 from engine.safety import check_safety, apply_safety
@@ -25,7 +24,6 @@ class PrescriptionView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-        self.conn = app.conn
         self.current_pid = None
         self.current_rx = None  # 当前预览处方 dict（未保存）
 
@@ -121,16 +119,12 @@ class PrescriptionView(ttk.Frame):
     def refresh(self):
         for item in self.patient_tree.get_children():
             self.patient_tree.delete(item)
-        rows = self.conn.execute(
-            "SELECT patient_id, name_enc, disease_category FROM patient ORDER BY patient_id DESC"
-        ).fetchall()
-        for r in rows:
-            self.patient_tree.insert("", "end", iid=str(r["patient_id"]), values=(
-                r["patient_id"], decrypt_text(r["name_enc"]), r["disease_category"]))
+        for p in self.app.repo.list_patients():
+            self.patient_tree.insert("", "end", iid=str(p["patient_id"]), values=(
+                p["patient_id"], p["name"], p["disease_category"]))
 
     def _pattern_names(self):
-        rows = self.conn.execute("SELECT pattern_name FROM rule_tcm_pattern").fetchall()
-        return [r["pattern_name"] for r in rows]
+        return self.app.repo.get_pattern_names()
 
     def _on_patient_select(self, event):
         sel = self.patient_tree.selection()
@@ -143,11 +137,7 @@ class PrescriptionView(ttk.Frame):
     def _load_rx_history(self):
         for item in self.rx_tree.get_children():
             self.rx_tree.delete(item)
-        rows = self.conn.execute(
-            "SELECT rx_id, matrix_code, phase, status FROM prescription "
-            "WHERE patient_id=? ORDER BY rx_id DESC", (self.current_pid,)
-        ).fetchall()
-        for r in rows:
+        for r in self.app.repo.list_prescriptions(self.current_pid):
             self.rx_tree.insert("", "end", iid=str(r["rx_id"]), values=(
                 r["rx_id"], r["matrix_code"], r["phase"], r["status"]))
 
@@ -155,7 +145,7 @@ class PrescriptionView(ttk.Frame):
         sel = self.rx_tree.selection()
         if not sel:
             return
-        rx = self.conn.execute("SELECT * FROM prescription WHERE rx_id=?", (int(sel[0]),)).fetchone()
+        rx = self.app.repo.get_prescription(int(sel[0]))
         if not rx:
             return
         self.current_rx = dict(rx)
@@ -176,26 +166,17 @@ class PrescriptionView(ttk.Frame):
         """从当前患者读取病种（第一版启用 CAD_PCI，多病种架构预留）。"""
         if self.current_pid is None:
             return "CAD_PCI"
-        row = self.conn.execute(
-            "SELECT disease_category FROM patient WHERE patient_id=?", (self.current_pid,)
-        ).fetchone()
-        return (row["disease_category"] if row and row["disease_category"] else "CAD_PCI")
+        return self.app.repo.get_patient_disease_category(self.current_pid)
 
     def _auto_fill(self):
         """从最新评估自动填充证型与分层。"""
         if self.current_pid is None:
             return
-        t = self.conn.execute(
-            "SELECT main_pattern FROM tcm_pattern WHERE patient_id=? AND physician_confirm=1 "
-            "ORDER BY assess_date DESC LIMIT 1", (self.current_pid,)
-        ).fetchone()
-        r = self.conn.execute(
-            "SELECT risk_level FROM risk_stratification WHERE patient_id=? "
-            "ORDER BY assess_date DESC LIMIT 1", (self.current_pid,)
-        ).fetchone()
+        t = self.app.repo.get_latest_confirmed_pattern(self.current_pid)
+        r = self.app.repo.get_latest_risk_level(self.current_pid)
         self.pattern_var["values"] = self._pattern_names()
-        self.pattern_var.set(t["main_pattern"] if t else "")
-        self.risk_var.set(r["risk_level"] if r else "低危")
+        self.pattern_var.set(t or "")
+        self.risk_var.set(r or "低危")
 
     # ---------- 生成 ----------
     def _generate(self):
@@ -260,8 +241,7 @@ class PrescriptionView(ttk.Frame):
 
     def _render_detail(self, rx, safety):
         """五大处方整合输出（文档 2.6 样式）。"""
-        p = self.conn.execute("SELECT name_enc FROM patient WHERE patient_id=?", (rx["patient_id"],)).fetchone()
-        name = decrypt_text(p["name_enc"]) if p else ""
+        name = (self.app.repo.get_patient_for_pdf(rx["patient_id"]) or {}).get("name", "")
         tcm = json.loads(rx.get("tcm_json") or "{}")
         res = json.loads(rx.get("resistance_json") or "{}")
         nutr = json.loads(rx.get("nutrition_json") or "{}")
@@ -285,9 +265,7 @@ class PrescriptionView(ttk.Frame):
         lines.append("③ 营养处方")
         lines.append(f"   膳食建议：{nutr.get('diet_notes', '')}；忌：{'、'.join(tcm.get('contraindications', []))}")
         lines.append("④ 心理处方")
-        a = self.conn.execute("SELECT PHQ9 FROM assessment WHERE patient_id=? ORDER BY assess_date DESC LIMIT 1",
-                              (rx["patient_id"],)).fetchone()
-        phq = a["PHQ9"] if a else None
+        phq = self.app.repo.get_latest_phq9(rx["patient_id"])
         lines.append(f"   PHQ-9={phq if phq is not None else '—'}；正念呼吸 10分/日（按评估结果调整）")
         lines.append("⑤ 危险因素管理")
         lines.append(f"   LDL-C 目标 <{rf.get('LDL_C_target', '1.4')}；血压目标 <{rf.get('BP_target', '130/80')}")
@@ -316,11 +294,11 @@ class PrescriptionView(ttk.Frame):
             if rx.get("rx_id"):
                 # 全字段更新（排除主键与患者外键），医师调整的所有字段均持久化
                 upd = {k: v for k, v in rx.items() if k not in ("rx_id", "patient_id")}
-                update_row(self.conn, "prescription", upd, "rx_id=?", (rx["rx_id"],))
+                self.app.repo.update_prescription(rx["rx_id"], upd)
                 rid = rx["rx_id"]
             else:
                 rx["status"] = "草稿"
-                rid = insert_row(self.conn, "prescription", rx)
+                rid = self.app.repo.insert_prescription(rx)
                 self.current_rx["rx_id"] = rid
             self._load_rx_history()
             self.saved_var.set(f"已保存处方 #{rid}（草稿）——需医师签发后方可打印")
@@ -341,8 +319,8 @@ class PrescriptionView(ttk.Frame):
         if not sign or not sign.strip():
             messagebox.showwarning("签发取消", "医师签名为必填项，不可跳过")
             return
-        update_row(self.conn, "prescription",
-                   {"status": "已签发", "physician_sign": sign.strip()}, "rx_id=?", (rid,))
+        self.app.repo.update_prescription(rid,
+                   {"status": "已签发", "physician_sign": sign.strip()})
         self.current_rx["status"] = "已签发"
         self.current_rx["physician_sign"] = sign.strip()
         self._load_rx_history()
