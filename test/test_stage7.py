@@ -117,6 +117,26 @@ class TestDashboard(Stage7Base):
         self.assertTrue(rows[0]["alert_date"])  # trigger_time
 
 
+class TestAlertHandle(Stage7Base):
+    """预警处置（阶段7-4）。"""
+
+    def test_handle_alert_closes(self):
+        rows = self.repo.list_open_alerts(5)
+        self.assertEqual(len(rows), 1)
+        aid = rows[0]["alert_id"]
+        self.repo.handle_alert(aid, "张医师", "已电话随访，指导服药")
+        # 已关闭：不再出现在待处置列表
+        self.assertEqual(len(self.repo.list_open_alerts(5)), 0)
+        row = self.repo.query_one(
+            "SELECT status, handler, handle_content FROM alert WHERE alert_id=?", (aid,))
+        self.assertEqual(row["status"], "已关闭")
+        self.assertEqual(row["handler"], "张医师")
+        self.assertEqual(row["handle_content"], "已电话随访，指导服药")
+        # 审计留痕
+        logs = self.repo.list_audit_logs(10)
+        self.assertTrue(any("预警处理" in (l.get("detail") or "") for l in logs))
+
+
 class TestCsvExport(Stage7Base):
     """CSV 导出。"""
 

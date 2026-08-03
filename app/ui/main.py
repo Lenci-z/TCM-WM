@@ -129,7 +129,8 @@ class MainApp(tk.Tk):
     def _apply_permissions(self):
         """RBAC 界面显隐（P3-T3）：按钮 state + 规则库 Tab 隐藏（仅管理员）。"""
         for view in (self.tab_patient, self.tab_assess, self.tab_rx,
-                     self.tab_followup, self.tab_rules):
+                     self.tab_followup, self.tab_dashboard, self.tab_adherence,
+                     self.tab_rules):
             fn = getattr(view, "_apply_permissions", None)
             if callable(fn):
                 fn()

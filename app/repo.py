@@ -737,6 +737,17 @@ class Repository:
             "GROUP BY main_pattern ORDER BY cnt DESC").fetchall()
         return [dict(r) for r in rows]
 
+    def handle_alert(self, alert_id: int, handler: str, content: str) -> None:
+        """处理预警：待处置 → 已关闭（记录处置人/内容/时间，审计留痕）。"""
+        self.conn.execute(
+            "UPDATE alert SET status='已关闭', handler=?, handle_content=?, handle_time=? "
+            "WHERE alert_id=?",
+            (handler, content, now_str(), alert_id),
+        )
+        self.conn.commit()
+        self.record_audit(None, "UPDATE", "alert", alert_id, "待处置", "已关闭",
+                          f"预警处理：{handler} - {content}")
+
     def list_open_alerts(self, limit: int = 10) -> list:
         """待处置预警列表（看板概览：规则名 JOIN rule_alert，患者名解密）。"""
         rows = self.conn.execute(

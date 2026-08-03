@@ -24,6 +24,7 @@ class DashboardView(ttk.Frame):
         self.app = app
         self._build()
         self.refresh()
+        self._apply_permissions()
 
     def _build(self):
         # ---- 顶部：统计卡片 ----
@@ -75,7 +76,11 @@ class DashboardView(ttk.Frame):
 
         # 右：未处理预警概览
         right = ttk.Frame(bottom)
-        ttk.Label(right, text="未处理预警（最近 10 条）", font=("微软雅黑", 10, "bold")).pack(anchor="w", padx=4, pady=(4, 2))
+        bar = ttk.Frame(right)
+        bar.pack(fill="x", padx=4, pady=(4, 0))
+        ttk.Label(bar, text="待处置预警（最近 10 条）", font=("微软雅黑", 10, "bold")).pack(side="left")
+        self.btn_handle_alert = ttk.Button(bar, text="处理选中预警", command=self._handle_alert)
+        self.btn_handle_alert.pack(side="right")
         cols = ("level", "patient", "rule", "date", "detail")
         self.alert_tree = ttk.Treeview(right, columns=cols, show="headings", height=14)
         heads = {"level": "级别", "patient": "患者", "rule": "预警规则", "date": "日期", "detail": "内容"}
@@ -91,6 +96,39 @@ class DashboardView(ttk.Frame):
         ttk.Button(self, text="刷新看板", command=self.refresh).pack(anchor="e", padx=10, pady=(0, 8))
 
     # ---------- 数据 ----------
+    def _handle_alert(self):
+        """处理选中预警（阶段7-4）：输入处置内容 → 已关闭 + 审计。"""
+        from tkinter import messagebox, simpledialog
+        sel = self.alert_tree.selection()
+        if not sel:
+            messagebox.showwarning("提示", "请先选中一条待处置预警")
+            return
+        aid = int(sel[0])  # iid = alert_id（refresh 插入时指定）
+        values = self.alert_tree.item(sel[0], "values")
+        rule_name = values[2] if len(values) > 2 else ""
+        content = simpledialog.askstring(
+            "处理预警", f"处置内容（预警 #{aid}：{rule_name}）：", parent=self)
+        if content is None:
+            return
+        content = content.strip()
+        if not content:
+            messagebox.showwarning("提示", "处置内容不能为空")
+            return
+        # 处置人：当前登录用户
+        handler = ""
+        if self.app.current_token:
+            user = self.app.auth.get_current_user(self.app.current_token)
+            handler = (user.get("display_name") or user.get("username")) if user else ""
+        self.app.repo.handle_alert(aid, handler or "系统", content)
+        _logger.info("预警处理: alert=%s content=%s", aid, content)
+        self.refresh()
+        messagebox.showinfo("处理完成", f"预警 #{aid} 已关闭")
+
+    def _apply_permissions(self):
+        """RBAC（P3-T3）：处理预警按钮需 alert:handle（医师/管理员）。"""
+        self.btn_handle_alert.config(
+            state=tk.NORMAL if self.app.check_perm("alert:handle") else tk.DISABLED)
+
     def refresh(self):
         try:
             s = self.app.repo.stats_summary()
@@ -112,7 +150,7 @@ class DashboardView(ttk.Frame):
             for item in self.alert_tree.get_children():
                 self.alert_tree.delete(item)
             for r in self.app.repo.list_open_alerts(10):
-                self.alert_tree.insert("", "end", values=(
+                self.alert_tree.insert("", "end", iid=str(r["alert_id"]), values=(
                     r["level"], r.get("patient_name", ""), r["rule_name"],
                     r["alert_date"], (r.get("detail") or "")[:60]))
         except Exception as e:
