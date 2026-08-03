@@ -13,10 +13,12 @@ from datetime import date
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import get_conn, insert_row, update_row, decrypt_text
+from log import get_logger
 from engine.pattern import judge_pattern
 from engine.stratification import stratify
 
 
+_logger = get_logger("view.assessment")
 class AssessmentView(ttk.Frame):
     """评估录入：左侧患者选择 + 右侧评估表单（滚动）。"""
 
@@ -355,6 +357,7 @@ class AssessmentView(ttk.Frame):
             self.app.set_status(f"评估已保存 #{aid} ｜ 分层：{level} ｜ 证型：{main}")
             messagebox.showinfo("保存成功", f"评估 #{aid} 已保存\n危险分层：{level}\n证型：{main or '未判定'}")
         except Exception as e:
+            _logger.error("评估保存失败: %s", e)
             messagebox.showerror("保存失败", str(e))
 
     def _build_clinical(self) -> dict:

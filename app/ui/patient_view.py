@@ -11,8 +11,10 @@ from tkinter import ttk, messagebox
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import get_conn, encrypt_text, decrypt_text, insert_row, update_row
+from log import get_logger
 
 
+_logger = get_logger("view.patient")
 class PatientView(ttk.Frame):
     """患者建档：左侧列表 + 右侧表单。"""
 
@@ -244,6 +246,7 @@ class PatientView(ttk.Frame):
             self.saved_var.set(msg)
             self.app.set_status(msg)
         except Exception as e:
+            _logger.error("患者保存失败: %s", e)
             messagebox.showerror("保存失败", str(e))
 
     def _save_procedure(self, pid):
@@ -287,6 +290,7 @@ class PatientView(ttk.Frame):
             self.refresh()
             self.saved_var.set(f"已删除 #{pid}")
         except Exception as e:
+            _logger.error("患者删除失败(存在业务记录): %s", e)
             messagebox.showerror("删除失败", f"该患者存在业务记录，无法删除：\n{e}")
 
 

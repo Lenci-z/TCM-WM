@@ -10,6 +10,9 @@ venv/
 *.sqlite
 *.sqlite3
 
+# 运行日志
+data/logs/
+
 # 输出产物
 *.pdf
 outputs/

@@ -5,12 +5,30 @@
 """
 import sys
 import os
+import traceback
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import DB_PATH, get_conn, init_db, import_seed, SEED_DIR
+from log import setup_logging, get_logger
+
+_logger = get_logger("main")
+
+
+def _install_excepthook():
+    """全局未处理异常兜底：写崩溃日志 + 提示用户（步骤 1.3）。"""
+    def hook(etype, value, tb):
+        _logger.critical("未处理异常: %s: %s\n%s", etype.__name__, value,
+                         "".join(traceback.format_exception(etype, value, tb)))
+        try:
+            messagebox.showerror("程序错误",
+                                 f"发生未处理错误：{etype.__name__}: {value}\n"
+                                 f"详细信息已写入日志 data/logs/rehab.log")
+        except Exception:
+            pass
+    sys.excepthook = hook
 
 
 class MainApp(tk.Tk):
@@ -18,6 +36,9 @@ class MainApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        setup_logging()
+        _install_excepthook()
+        _logger.info("系统启动")
         self.title("中西医结合心血管康复全程管理系统 V0.1（MVP）")
         self.geometry("1280x800")
         self.minsize(1100, 700)

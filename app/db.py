@@ -11,14 +11,23 @@ import os
 import sqlite3
 from datetime import datetime
 
-# ---------- 路径 ----------
+# ---------- 路径（从 config.ini 读取，缺省用内置默认值） ----------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-DB_PATH = os.path.join(DATA_DIR, "rehab.db")
-SEED_DIR = os.path.join(DATA_DIR, "seed")
 
-# ---------- 加密工具（MVP 标准库可逆加密，正式版对接医院加密方案） ----------
-_ENCRYPT_KEY = b"CR-Rehab-MVP-2026"  # 本地工具用固定密钥；正式版须更换并纳入密钥管理
+def _default_path(rel: str) -> str:
+    return os.path.join(BASE_DIR, rel)
+
+try:
+    from config import get_config
+    _cfg = get_config()
+    DB_PATH = _cfg.db_path or _default_path("data/rehab.db")
+    SEED_DIR = _cfg.seed_dir or _default_path("data/seed")
+    _ENCRYPT_KEY = _cfg.encrypt_key or b"CR-Rehab-MVP-2026"
+except Exception:
+    # 无 config.ini 时兜底（测试/打包场景）
+    DB_PATH = _default_path("data/rehab.db")
+    SEED_DIR = _default_path("data/seed")
+    _ENCRYPT_KEY = b"CR-Rehab-MVP-2026"
 
 
 def encrypt_text(plain: str) -> str:
@@ -337,9 +346,38 @@ def init_db(db_path: str = DB_PATH) -> None:
     try:
         for sql in SCHEMA.values():
             conn.execute(sql)
+        migrate(conn)
         conn.commit()
     finally:
         conn.close()
+
+
+# ---------- 数据库迁移（步骤 1.4：schema_version 表 + 迁移脚本，加字段不删库） ----------
+# 迁移列表：[(版本号, 名称, [SQL, ...])]
+# 版本号从 1 开始递增；schema_version 表记录已应用版本。
+MIGRATIONS = [
+    # 示例（未来 v0.3 加字段时启用）：
+    # (2, "patient_phone2", ["ALTER TABLE patient ADD COLUMN phone2 TEXT"]),
+]
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """按版本顺序应用未执行的迁移。幂等。"""
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS schema_version "
+        "(version INTEGER PRIMARY KEY, name TEXT, applied_at TEXT)"
+    )
+    applied = {r["version"] for r in conn.execute("SELECT version FROM schema_version").fetchall()}
+    for version, name, sqls in MIGRATIONS:
+        if version in applied:
+            continue
+        for sql in sqls:
+            conn.execute(sql)
+        conn.execute(
+            "INSERT INTO schema_version (version, name, applied_at) VALUES (?,?,?)",
+            (version, name, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        )
+        print(f"[migrate] 已应用 v{version}: {name}")
 
 
 def table_columns(conn: sqlite3.Connection, table: str) -> list:

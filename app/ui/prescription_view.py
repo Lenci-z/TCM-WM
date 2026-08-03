@@ -13,10 +13,12 @@ from datetime import date, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import get_conn, insert_row, update_row, decrypt_text
+from log import get_logger
 from engine.prescription import build_prescription, matrix_code
 from engine.safety import check_safety, apply_safety
 
 
+_logger = get_logger("view.prescription")
 class PrescriptionView(ttk.Frame):
     """处方管理：生成/调整/签发/打印。"""
 
@@ -223,6 +225,7 @@ class PrescriptionView(ttk.Frame):
             self._fill_adjust(rx)
             self.saved_var.set("已生成（草稿预览）——请审核调整后保存签发")
         except Exception as e:
+            _logger.error("处方生成失败: %s", e)
             messagebox.showerror("生成失败", str(e))
 
     def _fill_adjust(self, rx):
@@ -316,6 +319,7 @@ class PrescriptionView(ttk.Frame):
             self._load_rx_history()
             self.saved_var.set(f"已保存处方 #{rid}（草稿）——需医师签发后方可打印")
         except Exception as e:
+            _logger.error("处方保存失败: %s", e)
             messagebox.showerror("保存失败", str(e))
 
     def _sign(self):
@@ -360,6 +364,7 @@ class PrescriptionView(ttk.Frame):
             self.saved_var.set(f"已导出：{path}")
             messagebox.showinfo("导出成功", f"处方 PDF 已保存：\n{path}")
         except Exception as e:
+            _logger.error("处方PDF导出失败: %s", e)
             messagebox.showerror("导出失败", str(e))
 
 

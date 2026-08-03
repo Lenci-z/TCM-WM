@@ -12,8 +12,10 @@ from tkinter import ttk, messagebox
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import get_conn, update_row
+from log import get_logger
 
 
+_logger = get_logger("view.rules")
 class RulesView(ttk.Frame):
     """规则库维护：左侧规则类型 → 中间表格 → 右侧编辑器。"""
 
@@ -218,12 +220,14 @@ class RulesView(ttk.Frame):
             try:
                 parsed = json.loads(raw)
             except ValueError as e:
+                _logger.error("规则JSON解析错误(%s): %s", f, e)
                 messagebox.showerror("JSON 错误", f"字段 {f} 不是合法 JSON：\n{e}")
                 return
             data[f] = json.dumps(parsed, ensure_ascii=False)
         try:
             update_row(self.conn, cfg["table"], data, f"{cfg['pk']}=?", (self.current_pk,))
         except Exception as e:
+            _logger.error("规则保存失败: %s", e)
             messagebox.showerror("保存失败", str(e))
             return
         self._load_table()
