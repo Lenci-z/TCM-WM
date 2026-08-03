@@ -49,7 +49,16 @@
         "III": "居家维持核心，每日 1–2 次"
       }
     },
-    "followup_template_json": null,
+    "followup_template_json": {
+      "base": "手术日(Day 0)起算；无手术日期用建档日期",
+      "nodes": [
+        {"code": "1周", "offset_days": 7, "required": ["症状", "用药依从", "伤口", "心率血压"], "optional": []},
+        {"code": "1月", "offset_days": 30, "required": ["症状", "用药依从", "心率血压", "血脂", "6MWT", "证型复评", "Borg反馈"], "optional": ["心电图"]},
+        {"code": "3月", "offset_days": 90, "required": ["全套必查", "HbA1c", "体成分", "PHQ-9/GAD-7", "生活质量量表"], "optional": ["心超"]},
+        {"code": "6月", "offset_days": 180, "required": ["全套复评"], "optional": ["运动试验"]},
+        {"code": "12月", "offset_days": 365, "required": ["全套复评", "事件登记"], "optional": ["CPET"]}
+      ]
+    },
     "alert_special_json": {
       "note": "CAD_PCI 病种特有预警（第一版）",
       "items": [
