@@ -188,6 +188,19 @@ class PrescriptionView(ttk.Frame):
         if not pattern or not risk:
             messagebox.showwarning("提示", "请选择证型与危险分层（可点『自动读取最新评估』）")
             return
+        # 参数范围校验（P3-T3）
+        hr = _float(self.pvars["resting_hr"].get())
+        age = _int(self.pvars["age"].get())
+        week = _int(self.pvars["week_no"].get(), 1)
+        if hr is not None and not (40 <= hr <= 200):
+            messagebox.showwarning("输入校验", "静息心率超出合理范围（40-200 次/分）")
+            return
+        if age is not None and not (1 <= age <= 120):
+            messagebox.showwarning("输入校验", "年龄超出合理范围（1-120 岁）")
+            return
+        if not (1 <= week <= 52):
+            messagebox.showwarning("输入校验", "周次超出合理范围（1-52）")
+            return
         try:
             dc = self._disease_category()
             # P2-T3：模板/参数集经 repo 读取，引擎纯函数调用
@@ -307,7 +320,10 @@ class PrescriptionView(ttk.Frame):
             messagebox.showerror("保存失败", str(e))
 
     def _sign(self):
-        """签发：签名必填，不可跳过。"""
+        """签发：签名必填，不可跳过。RBAC（P3-T3）：prescription:sign（治疗师/护士无权限）。"""
+        if not self.app.check_perm("prescription:sign"):
+            messagebox.showwarning("无权限", "当前角色无处方签发权限（需医师或管理员）")
+            return
         if not self.current_rx:
             messagebox.showwarning("提示", "请先生成处方")
             return
@@ -328,7 +344,10 @@ class PrescriptionView(ttk.Frame):
         self.saved_var.set(f"处方 #{rid} 已签发（{sign}）——可打印")
 
     def _print_pdf(self):
-        """打印：仅已签发处方。"""
+        """打印：仅已签发处方。RBAC（P3-T3）：pdf:export（治疗师/护士无权限）。"""
+        if not self.app.check_perm("pdf:export"):
+            messagebox.showwarning("无权限", "当前角色无 PDF 导出权限（需医师或管理员）")
+            return
         rx = self.current_rx
         if not rx:
             messagebox.showwarning("提示", "请先生成处方")

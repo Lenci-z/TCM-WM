@@ -74,7 +74,8 @@ class GuiTestBase(unittest.TestCase):
         cls.root.withdraw()
         cls.repo = Repository(cls.conn)
         cls.app_stub = SimpleNamespace(conn=cls.conn, set_status=lambda s: None,
-                                       repo=cls.repo)
+                                       repo=cls.repo,
+                                       check_perm=lambda perm: True)
 
     @classmethod
     def tearDownClass(cls):
@@ -192,6 +193,69 @@ class TestP1_4ConsecutiveMet(GuiTestBase):
     def test_blue_not_trigger_below_count(self):
         trig = evaluate_alerts(self.repo.get_alert_rules(), "CAD_PCI", "气虚血瘀", "中危", {"streak": 0})
         self.assertNotIn("ALERT-B-001", [t["rule_code"] for t in trig])
+
+
+class TestRbacGuard(unittest.TestCase):
+    """P3-T3 RBAC 拦截：无权限角色触发关键操作被拒绝（app_stub.check_perm=False）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.exists(TEST_DB):
+            os.remove(TEST_DB)
+        init_db(TEST_DB)
+        import_seed(TEST_DB)
+        cls.conn = get_conn(TEST_DB)
+        cls.repo = Repository(cls.conn)
+        cls.pid = cls.repo.insert_patient({
+            "name": "权限测试", "gender": "男", "birth_date": "1960-01-01",
+            "contact": "13800138000", "register_date": "2026-08-03",
+            "disease_category": "CAD_PCI",
+        })
+        cls.root = tk.Tk()
+        cls.root.withdraw()
+        # 无权限 stub：check_perm 恒 False
+        cls.app_stub = SimpleNamespace(conn=cls.conn, set_status=lambda s: None,
+                                       repo=cls.repo,
+                                       check_perm=lambda perm: False)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.root.destroy()
+        cls.conn.close()
+        if os.path.exists(TEST_DB):
+            os.remove(TEST_DB)
+
+    def test_rules_edit_blocked(self):
+        """规则编辑：无 rules:edit 权限被拦。"""
+        from ui.rules_view import RulesView
+        with patch("ui.rules_view.messagebox") as mb:
+            rv = RulesView(self.root, self.app_stub)
+            rv.current_type = "rule_alert"
+            rv.current_pk = 1
+            rv._save_edit()
+            # 无权限：showwarning 被调用，且未进入保存
+            self.assertTrue(mb.showwarning.called)
+
+    def test_sign_blocked(self):
+        """处方签发：无 prescription:sign 权限被拦。"""
+        from ui.prescription_view import PrescriptionView
+        with patch("ui.prescription_view.messagebox") as mb:
+            pv = PrescriptionView(self.root, self.app_stub)
+            pv.current_rx = {"rx_id": 1}
+            pv._sign()
+            self.assertTrue(mb.showwarning.called)
+
+    def test_delete_blocked(self):
+        """患者删除：无 patient:delete 权限被拦（不弹确认框直接拒绝）。"""
+        from ui.patient_view import PatientView
+        with patch("ui.patient_view.messagebox") as mb:
+            pv = PatientView(self.root, self.app_stub)
+            pv.refresh()
+            pv.tree.selection_set(str(self.pid))
+            pv._delete()
+            self.assertTrue(mb.showwarning.called)
+            # 确认框（askyesno）不应被调用
+            self.assertFalse(mb.askyesno.called)
 
 
 if __name__ == "__main__":

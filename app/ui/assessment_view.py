@@ -293,11 +293,39 @@ class AssessmentView(ttk.Frame):
                 data[key] = _num(v) if v else None
         return data
 
+    def _validate_inputs(self, data: dict) -> str | None:
+        """数值范围校验（P3-T3）：越界返回错误信息，合法返回 None。"""
+        ranges = [
+            ("LVEF", 0, 100), ("six_mwd", 0, 1000), ("NT_proBNP", 0, 100000),
+            ("LDL_C", 0.1, 20), ("HbA1c", 3, 20), ("PHQ9", 0, 27),
+            ("GAD7", 0, 21), ("BMI", 10, 60), ("resting_hr", 30, 200),
+            ("sys_bp", 60, 260), ("dia_bp", 30, 150),
+        ]
+        for key, lo, hi in ranges:
+            v = data.get(key)
+            if v is None or v == "":
+                continue
+            try:
+                fv = float(v)
+            except (TypeError, ValueError):
+                return f"{key} 不是有效数值"
+            if not (lo <= fv <= hi):
+                return f"{key} 超出合理范围（{lo}-{hi}）"
+        return None
+
     def _save(self):
+        """保存评估。RBAC（P3-T3）：assessment:create（全员可创建）。"""
+        if not self.app.check_perm("assessment:create"):
+            messagebox.showwarning("无权限", "当前角色无评估录入权限")
+            return
         if self.current_pid is None:
             messagebox.showwarning("提示", "请先在左侧选择患者")
             return
         data = self._get_assessment_data()
+        err = self._validate_inputs(data)
+        if err:
+            messagebox.showwarning("输入校验", f"{err}，请修正后保存")
+            return
         try:
             # 1. 保存评估
             aid = self.app.repo.insert_assessment(data)

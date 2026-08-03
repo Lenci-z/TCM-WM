@@ -263,7 +263,11 @@ class PatientView(ttk.Frame):
             self.app.repo.insert_procedure(data)
 
     def _delete(self):
-        """删除选中患者（仅无业务记录可删；有评估/处方等业务记录显式拒绝，日志留痕）。"""
+        """删除选中患者（仅无业务记录可删；有评估/处方等业务记录显式拒绝，日志留痕）。
+        RBAC（P3-T3）：patient:delete（治疗师/护士无权限）。"""
+        if not self.app.check_perm("patient:delete"):
+            messagebox.showwarning("无权限", "当前角色无删除患者权限（需医师或管理员）")
+            return
         if not self.tree.selection():
             return
         pid = int(self.tree.selection()[0])

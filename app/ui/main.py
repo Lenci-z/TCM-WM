@@ -127,6 +127,12 @@ class MainApp(tk.Tk):
                 return
         self.user_var.set("未登录")
 
+    def check_perm(self, permission: str) -> bool:
+        """RBAC 权限检查（P3-T3）：未登录一律拒绝。"""
+        if not self.current_token:
+            return False
+        return self.auth.check_permission(self.current_token, permission)
+
     # ---------- 数据库 ----------
     def _init_database(self):
         init_db()

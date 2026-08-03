@@ -202,6 +202,10 @@ class RulesView(ttk.Frame):
         self.edit_status.set(f"编辑 {cfg['table']} #{self.current_pk}")
 
     def _save_edit(self):
+        """保存规则编辑。RBAC（P3-T3）：rules:edit（仅管理员）。"""
+        if not self.app.check_perm("rules:edit"):
+            messagebox.showwarning("无权限", "规则库编辑仅管理员可操作")
+            return
         if self.current_type is None or self.current_pk is None:
             messagebox.showwarning("提示", "请先选择规则行")
             return
