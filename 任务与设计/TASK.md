@@ -167,9 +167,15 @@
 - [ ] `check_safety(safety_rules, disease_contra, ...)`、`evaluate_alerts(alert_rules, ...)`、`export_rx_pdf(patient_info, ...)` 移除 conn；持久化函数移 repo
 
 ### 5.5 P2-T5 GUI 全量适配 + 测试拆分 + DB 健壮性
-- [ ] 6 视图 `self.conn` → `self.repo`；引擎调用改传 data
-- [ ] 测试拆分：`test_engine_pure.py`（纯逻辑无 DB）+ 集成测试
-- [ ] DB 健壮性（锁/重试）
+- [x] 6 视图 `self.conn` → `self.app.repo`（patient/assessment/prescription/followup/rules 全部，2026-08-03）
+- [x] 视图层不再直接 `encrypt/decrypt/insert_row/update_row`——加密与 SQL 全在 repo（2026-08-03）
+- [x] 测试拆分：新增 `test_engine_pure.py` 24 用例（纯逻辑无 DB，构造 dict 输入）（2026-08-03）
+- [x] DB 健壮性：`get_conn` 加 `timeout=5.0`（busy_timeout）+ WAL 模式；.gitignore 补 wal/shm（2026-08-03）
+- **验收**：全量 76 测试 0 FAIL ✓（52 原有 + 24 纯逻辑）+ GUI 冒烟 OK
+
+## 阶段5 完成总结（2026-08-03）
+
+P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调 → repo 读写 → 引擎纯函数（dict 进 dict 出）**。引擎 5 文件 + pdf_export 全部不接 conn；加密/SQL 全在 Repository 层。为 P3（安全升级）与 P4（架构演进/技术栈迁移）打好地基——届时只换数据访问层，引擎逻辑不动。
 
 ---
 *状态记录：每完成一项将 - [ ] 改为 - [x] 并记录日期。*
