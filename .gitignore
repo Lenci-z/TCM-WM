@@ -23,6 +23,9 @@ data/*.key
 *.pdf
 outputs/
 
+# 学习教程（内部参考，不入库）
+docs/软件开发教程_理解设计方案/
+
 # Hermes
 .hermes/plans/
 
