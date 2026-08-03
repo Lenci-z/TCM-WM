@@ -4,6 +4,7 @@
 覆盖：stratify / judge_pattern / build_prescription / check_safety / evaluate_alerts
 以及内部纯函数（matrix_code / calc_target_hr / phase_adjust / progression_decision / _eval_condition）。
 """
+import json
 import os
 import sys
 import unittest
@@ -208,6 +209,59 @@ class TestAlertsPure(unittest.TestCase):
         """适用范围过滤：病种不符不触发。"""
         trig = evaluate_alerts(ALERT_RULES, "CAD_CABG", "气虚血瘀", "中危", {"resting_hr": 105})
         self.assertEqual(trig, [])
+
+
+class TestMatrixBoundary(unittest.TestCase):
+    """18 格矩阵（6 证型 × 3 分层）边界遍历（并行第一批线⑤-1，纯逻辑不碰 DB）。"""
+
+    PATTERNS_18 = ["气虚血瘀", "痰浊闭阻", "气阴两虚", "心血瘀阻", "阳虚水泛", "肝阳上亢"]
+    RISKS_18 = ["低危", "中危", "高危"]
+
+    def test_matrix_code_all_18_combinations(self):
+        """6 证型 × 3 分层 → 18 个合法 matrix_code（CAD_PCI-A1 ... CAD_PCI-F3）。"""
+        codes = []
+        for pat in self.PATTERNS_18:
+            for risk in self.RISKS_18:
+                code = matrix_code("CAD_PCI", pat, risk)
+                self.assertRegex(code, r"^CAD_PCI-[A-F][1-3]$")
+                codes.append(code)
+        self.assertEqual(len(codes), 18)
+        self.assertEqual(len(set(codes)), 18, "18 格编码不应有重复")
+
+    def test_matrix_code_unknown_pattern_raises(self):
+        with self.assertRaises(ValueError):
+            matrix_code("CAD_PCI", "不存在的证型", "低危")
+
+    def test_matrix_code_unknown_risk_raises(self):
+        with self.assertRaises(ValueError):
+            matrix_code("CAD_PCI", "气虚血瘀", "超危")
+
+    def test_build_prescription_all_templates_ok(self):
+        """构造 18 个最小 template dict，每个过 build_prescription 不抛异常且含必填键。"""
+        for pat in self.PATTERNS_18:
+            for risk in self.RISKS_18:
+                tpl = json.loads(json.dumps(TEMPLATE))  # 深拷贝
+                # 按分层映射起始八段锦级别：低危 L2 / 中危 L1 / 高危 L0
+                tpl["baduanjin_level"] = {"低危": "L2", "中危": "L1", "高危": "L0"}[risk]
+                rx = build_prescription(tpl, BDJ_CFG, "CAD_PCI", pat, risk,
+                                        phase="II", week_no=2, resting_hr=60, age=65)
+                expected_code = matrix_code("CAD_PCI", pat, risk)
+                self.assertEqual(rx["matrix_code"], expected_code)
+                for key in ("baduanjin_level", "aerobic_type", "aerobic_duration",
+                            "aerobic_freq", "rpe_min", "rpe_max", "hr_min", "hr_max",
+                            "resistance_json", "tcm_json", "nutrition_json",
+                            "risk_factor_json", "status"):
+                    self.assertIn(key, rx)
+                self.assertEqual(rx["status"], "草稿")
+                self.assertEqual(rx["baduanjin_level"], tpl["baduanjin_level"])
+
+    def test_build_prescription_phase_i_high_risk(self):
+        """边界：I 期高危 → 起始 L0 + RPE 9-11（阶段适配）。"""
+        tpl = json.loads(json.dumps(TEMPLATE))
+        rx = build_prescription(tpl, BDJ_CFG, "CAD_PCI", "阳虚水泛", "高危",
+                                phase="I", week_no=1, resting_hr=60, age=70)
+        self.assertEqual(rx["baduanjin_level"], "L0")
+        self.assertEqual((rx["rpe_min"], rx["rpe_max"]), (9, 11))
 
 
 if __name__ == "__main__":

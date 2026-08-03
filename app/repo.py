@@ -784,11 +784,11 @@ class Repository:
         return dict(row) if row else None
 
     def insert_row(self, table: str, data: dict) -> int:
-        """通用插入。复用 db.insert_row。"""
+        """通用插入。复用 db.insert_row（经 execute_with_retry，锁冲突自动重试）。"""
         from db import insert_row as _insert_row
         return _insert_row(self.conn, table, data)
 
     def update_row(self, table: str, data: dict, where: str, params: tuple) -> None:
-        """通用更新。复用 db.update_row。"""
+        """通用更新。复用 db.update_row（经 execute_with_retry，锁冲突自动重试）。"""
         from db import update_row as _update_row
         _update_row(self.conn, table, data, where, params)

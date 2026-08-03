@@ -15,6 +15,9 @@ venv/
 # 运行日志
 data/logs/
 
+# 数据库备份（并行第一批线③：运行时产物，不入库）
+data/backups/
+
 # AES 本地密钥文件（P3 安全：不入库）
 data/.secret_key
 data/*.key

@@ -63,6 +63,11 @@ class MainApp(tk.Tk):
         self.user_var = tk.StringVar(value="")
         tk.Label(header, textvariable=self.user_var,
                  bg="#8B2F2F", fg="#F5E6C8", font=("微软雅黑", 10)).pack(side="right", padx=16)
+        # 并行第一批线③：手动备份按钮（仅管理员可见，_apply_permissions 控制）
+        self.btn_backup = tk.Button(header, text="备份数据", command=self._backup_now,
+                                    bg="#A0522D", fg="white", relief="flat",
+                                    font=("微软雅黑", 10))
+        self.btn_backup.pack(side="right", padx=4)
 
         # 主体：Notebook 五区导航
         self.notebook = ttk.Notebook(self)
@@ -137,6 +142,10 @@ class MainApp(tk.Tk):
         # 规则库 Tab：仅管理员可见（rules:edit）
         can_edit_rules = self.check_perm("rules:edit")
         self.notebook.tab(self.tab_rules, state="normal" if can_edit_rules else "hidden")
+        # 并行第一批线③：备份按钮仅管理员可见（管理员权限矩阵含 * 全通）
+        self.btn_backup.pack_forget()
+        if self.check_perm("data:backup"):
+            self.btn_backup.pack(side="right", padx=4)
 
     def _refresh_user_bar(self):
         """标题栏右侧显示当前用户（未登录则提示）。"""
@@ -155,6 +164,17 @@ class MainApp(tk.Tk):
 
     # ---------- 数据库 ----------
     def _init_database(self):
+        # 并行第一批线②（PRD P2 功能 6）：启动健康检查，损坏时提示而非崩溃
+        from db import check_db_health
+        ok, msg = check_db_health()
+        if not ok:
+            # 文件不存在 = 首次启动，init_db 将建库，属正常路径，不打扰
+            if os.path.exists(DB_PATH):
+                proceed = messagebox.askyesno(
+                    "数据库异常",
+                    f"数据库健康检查未通过：\n{msg}\n\n是否仍尝试启动？（建议先备份数据）")
+                if not proceed:
+                    sys.exit(1)
         init_db()
         conn = get_conn()
         try:
@@ -187,6 +207,18 @@ class MainApp(tk.Tk):
 
     def set_status(self, text: str):
         self.status_var.set(text)
+
+    # ---------- 备份（并行第一批线③：PRD P4 功能 6 单机版） ----------
+    def _backup_now(self):
+        """手动备份：调 backup.backup_db，结果弹窗提示。"""
+        try:
+            from backup import backup_db
+            path = backup_db(DB_PATH)
+            self.set_status(f"备份完成：{os.path.basename(path)}")
+            messagebox.showinfo("备份完成", f"数据已备份到：\n{path}")
+        except Exception as e:
+            _logger.error("备份失败: %s", e)
+            messagebox.showerror("备份失败", str(e))
 
 
 def main():

@@ -487,11 +487,14 @@ def import_seed(db_path: str = DB_PATH, seed_dir: str = SEED_DIR) -> dict:
 # ---------- 通用 DAO ----------
 
 def insert_row(conn: sqlite3.Connection, table: str, data: dict) -> int:
-    """插入一行，返回自增 id。data 键需与表字段一致。"""
+    """插入一行，返回自增 id。data 键需与表字段一致。
+    经 execute_with_retry：锁冲突自动指数退避重试（并行第一批线②）。
+    """
     cols = [c for c in data.keys()]
     placeholders = ",".join("?" * len(cols))
     colnames = ",".join(cols)
-    cur = conn.execute(
+    cur = execute_with_retry(
+        conn,
         f"INSERT INTO {table} ({colnames}) VALUES ({placeholders})",
         [data[c] for c in cols],
     )
@@ -500,9 +503,12 @@ def insert_row(conn: sqlite3.Connection, table: str, data: dict) -> int:
 
 
 def update_row(conn: sqlite3.Connection, table: str, data: dict, where: str, params: tuple) -> None:
-    """按条件更新一行。"""
+    """按条件更新一行。
+    经 execute_with_retry：锁冲突自动指数退避重试（并行第一批线②）。
+    """
     sets = ",".join(f"{c}=?" for c in data.keys())
-    conn.execute(
+    execute_with_retry(
+        conn,
         f"UPDATE {table} SET {sets} WHERE {where}",
         [data[c] for c in data.keys()] + list(params),
     )
@@ -511,6 +517,56 @@ def update_row(conn: sqlite3.Connection, table: str, data: dict, where: str, par
 
 def query(conn: sqlite3.Connection, sql: str, params: tuple = ()) -> list:
     return conn.execute(sql, params).fetchall()
+
+
+# ---------- DB 健壮性（并行第一批线②：PRD P2 功能 6/7） ----------
+
+def check_db_health(db_path: str = DB_PATH) -> tuple:
+    """启动时数据库健康检查。
+
+    返回 (是否正常, 描述信息)。
+    检查项：
+      1. 文件存在性（不存在 → (False, "数据库文件不存在: xxx")）
+      2. 能否打开连接（失败 → (False, "无法打开数据库: <异常>")）
+      3. PRAGMA quick_check（结果非 "ok" → (False, "完整性校验失败: <结果>")）
+    全部通过 → (True, "ok")
+    注意：用 quick_check 而非 integrity_check（启动场景要快）；
+          只读方式检查，不触发写锁。
+    """
+    if not os.path.exists(db_path):
+        return False, f"数据库文件不存在: {db_path}"
+    try:
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        try:
+            row = conn.execute("PRAGMA quick_check").fetchone()
+            result = row[0] if row else "unknown"
+            if result != "ok":
+                return False, f"完整性校验失败: {result}"
+        finally:
+            conn.close()
+    except sqlite3.Error as e:
+        return False, f"无法打开数据库: {e}"
+    return True, "ok"
+
+
+def execute_with_retry(conn: sqlite3.Connection, sql: str, params: tuple = (),
+                       retries: int = 3, base_delay: float = 0.2):
+    """执行 SQL，遇 "database is locked"（OperationalError）时指数退避重试。
+
+    重试间隔：base_delay * 2^n（0.2s / 0.4s / 0.8s）。
+    retries 次后仍失败 → 原样抛出。
+    非 locked 错误 → 立即抛出，不重试。
+    """
+    import time
+    attempt = 0
+    while True:
+        try:
+            return conn.execute(sql, params)
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) or attempt >= retries:
+                raise
+            time.sleep(base_delay * (2 ** attempt))
+            attempt += 1
 
 
 if __name__ == "__main__":
