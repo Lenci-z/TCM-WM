@@ -271,20 +271,29 @@ class Repository:
                    "patient_id=?", (patient_id,))
 
     def delete_patient(self, patient_id: int) -> None:
-        """删除患者及其全部业务记录（级联）。
-        P2最终审核 B-1 采纳（Ada 验收标准）：外键已开启，按 子表→父表 顺序删除，
-        否则 IntegrityError。删除为显式操作，GUI 层二次确认警示 + 日志留痕。
-        顺序：先删全部子表（procedure/assessment/tcm_pattern/risk_stratification/
-        prescription/adherence_log/vital_upload/alert/follow_up/clinical_event），
-        再删 patient。
+        """删除患者（含手术信息）。
+
+        保护性设计（P2审核更正后确认）：**医疗数据不可级联删除**——
+        患者存在业务记录（assessment/tcm_pattern/risk_stratification/prescription/
+        adherence_log/vital_upload/alert/follow_up/clinical_event 共 9 张诊疗子表）时
+        拒绝删除，抛 ValueError（显式检查，非依赖外键隐式异常）。procedure 属建档信息，
+        随患者删除，不拦截。
+
+        仅无业务记录的患者（仅 patient + procedure）可删除。
         """
-        children = [
-            "procedure", "assessment", "tcm_pattern", "risk_stratification",
+        business_tables = [
+            "assessment", "tcm_pattern", "risk_stratification",
             "prescription", "adherence_log", "vital_upload", "alert",
             "follow_up", "clinical_event",
         ]
-        for tbl in children:
-            self.conn.execute(f"DELETE FROM {tbl} WHERE patient_id=?", (patient_id,))
+        for tbl in business_tables:
+            n = self.conn.execute(
+                f"SELECT COUNT(*) FROM {tbl} WHERE patient_id=?", (patient_id,)
+            ).fetchone()[0]
+            if n:
+                raise ValueError(
+                    f"患者 #{patient_id} 存在 {tbl} 业务记录 {n} 条，拒绝删除（医疗数据保护）")
+        self.conn.execute("DELETE FROM procedure WHERE patient_id=?", (patient_id,))
         self.conn.execute("DELETE FROM patient WHERE patient_id=?", (patient_id,))
         self.conn.commit()
 

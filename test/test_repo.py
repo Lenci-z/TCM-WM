@@ -159,11 +159,11 @@ class TestRepoPatientCRUD(unittest.TestCase):
         self.repo.delete_patient(pid)
         self.assertIsNone(self.repo.get_patient(pid))
 
-    def test_delete_patient_with_records_cascade(self):
-        """级联删除（P2最终审核 B-1 采纳）：有业务记录的患者删除时，
-        全部子表（评估/证型/分层/处方/预警/随访）一并清除，患者消失。"""
+    def test_delete_patient_with_records_blocked(self):
+        """保护性设计（P2审核更正后确认）：有业务记录的患者删除被显式拒绝
+        （ValueError，非依赖外键隐式异常），且数据完好。医疗数据不可级联删除。"""
         pid = self.repo.insert_patient({
-            "name": "级联测试",
+            "name": "保护测试",
             "gender": "男",
             "birth_date": "1968-08-08",
             "contact": "13500135001",
@@ -195,16 +195,15 @@ class TestRepoPatientCRUD(unittest.TestCase):
             "patient_id": pid, "plan_date": "2026-08-10",
             "fu_type": "1周", "status": "待随访",
         })
-        # 级联删除
-        self.repo.delete_patient(pid)
-        # 患者消失，全部子表清空
-        self.assertIsNone(self.repo.get_patient(pid))
-        self.assertEqual(self.repo.list_assessments(pid), [])
-        self.assertIsNone(self.repo.get_latest_confirmed_pattern(pid))
-        self.assertIsNone(self.repo.get_latest_risk_level(pid))
-        self.assertEqual(self.repo.list_prescriptions(pid), [])
-        self.assertEqual(self.repo.list_pending_alerts(), [])
-        self.assertEqual(self.repo.list_followups(pid), [])
+        # 显式拒绝删除（ValueError），数据完好
+        with self.assertRaises(ValueError) as ctx:
+            self.repo.delete_patient(pid)
+        self.assertIn("拒绝删除", str(ctx.exception))
+        self.assertIsNotNone(self.repo.get_patient(pid))
+        self.assertEqual(len(self.repo.list_assessments(pid)), 1)
+        self.assertEqual(len(self.repo.list_prescriptions(pid)), 1)
+        self.assertEqual(len(self.repo.list_followups(pid)), 1)
+        # procedure 属建档信息不拦截：验证无业务记录场景可删（另一测试已覆盖）
 
 
 class TestRepoProcedure(unittest.TestCase):

@@ -263,21 +263,23 @@ class PatientView(ttk.Frame):
             self.app.repo.insert_procedure(data)
 
     def _delete(self):
-        """删除选中患者（级联删除全部业务记录，二次确认警示 + 日志留痕）。"""
+        """删除选中患者（仅无业务记录可删；有评估/处方等业务记录显式拒绝，日志留痕）。"""
         if not self.tree.selection():
             return
         pid = int(self.tree.selection()[0])
         if not messagebox.askyesno(
                 "确认删除",
-                f"确定删除患者 #{pid} 及其【全部业务记录】？\n"
-                "将一并删除：评估、证型、分层、处方、随访、预警、依从、上传记录。\n"
-                "（不可恢复！操作将写入日志）"):
+                f"确定删除患者 #{pid} 及其手术信息？\n"
+                "（若存在评估/证型/分层/处方/随访/预警等业务记录，将拒绝删除——医疗数据保护）"):
             return
         try:
             self.app.repo.delete_patient(pid)
-            _logger.warning("患者 #%s 已级联删除（含全部业务记录）", pid)
+            _logger.warning("患者 #%s 已删除（无业务记录）", pid)
             self.refresh()
-            self.saved_var.set(f"已删除 #{pid}（含全部业务记录）")
+            self.saved_var.set(f"已删除 #{pid}")
+        except ValueError as e:
+            _logger.warning("患者 #%s 删除被拒绝（业务记录保护）: %s", pid, e)
+            messagebox.showwarning("无法删除", f"{e}\n（医疗数据保护：有业务记录的患者不可删除）")
         except Exception as e:
             _logger.error("患者删除失败: %s", e)
             messagebox.showerror("删除失败", str(e))
