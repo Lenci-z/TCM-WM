@@ -234,7 +234,7 @@ P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调
 
 ### 7.6 P4-B 启动登记（B-T0~B-T13，依据 docs/P4开发设计文档.md）
 - [x] B-T0 路线决策备忘签字（四项输入全"是"→ 路线 B 锁定，2026-08-03）
-- [ ] B-T1 FastAPI 骨架 + 现有 Repository（SQLite 先行）+ P3 AuthManager 接入
+- [x] B-T1 FastAPI 骨架：api/main.py 工厂 + auth(login/me) + patients CRUD（token认证+RBAC+AES透明+删除409）+ db check_same_thread=False + test_api 13用例（2026-08-03）
 - [ ] B-T2 患者管理垂直切片（React + Playwright）
 - [ ] B-T3~B-T10 医师端/支撑（评估/处方/随访/预警/规则/图表/PG/部署）
 - [ ] B-T11~B-T13 管理端（用户/看板/审计备份，后置）

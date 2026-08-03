@@ -3,3 +3,6 @@
 reportlab>=4.0        # 处方单 PDF 导出（中文字体 msyh/simhei）
 cryptography>=42.0    # P3: AES-256-CBC 加密（security.py）
 bcrypt>=4.0           # P3: 密码哈希（security.py）
+fastapi>=0.110        # B-T1: API 服务层（P4 路线 B）
+uvicorn>=0.29         # B-T1: ASGI 服务器
+httpx>=0.27           # B-T1: TestClient 测试依赖
