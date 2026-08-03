@@ -36,6 +36,11 @@ class EngineTestBase(unittest.TestCase):
         cls.strat_cfg = cls.repo.get_strat_config("CAD_PCI")
         cls.patterns = cls.repo.get_patterns()
 
+    def _tpl(self, matrix):
+        """repo 预取模板 + 八段锦参数集（P2-T3 新签名）。"""
+        return (self.repo.get_rx_template("CAD_PCI", matrix),
+                self.repo.get_baduanjin_cfg("CAD_PCI"))
+
     @classmethod
     def tearDownClass(cls):
         cls.conn.close()
@@ -105,7 +110,7 @@ class TestMatrixCode(EngineTestBase):
 
 class TestPrescription(EngineTestBase):
     def test_rx_ii(self):
-        rx = build_prescription(self.conn, "CAD_PCI", "气虚血瘀", "中危",
+        rx = build_prescription(*self._tpl("CAD_PCI-A2"), "CAD_PCI", "气虚血瘀", "中危",
                                 phase="II", week_no=3, resting_hr=60, age=65,
                                 on_beta_blocker=False)
         self.assertEqual(rx["matrix_code"], "CAD_PCI-A2")
@@ -118,7 +123,7 @@ class TestPrescription(EngineTestBase):
         self.assertEqual(rx["status"], "草稿")
 
     def test_rx_phase_i_beta(self):
-        rx = build_prescription(self.conn, "CAD_PCI", "阳虚水泛", "高危",
+        rx = build_prescription(*self._tpl("CAD_PCI-E3"), "CAD_PCI", "阳虚水泛", "高危",
                                 phase="I", week_no=1, resting_hr=70, age=70,
                                 on_beta_blocker=True)
         self.assertEqual(rx["phase"], "I")
@@ -128,7 +133,7 @@ class TestPrescription(EngineTestBase):
         self.assertEqual(rx["hr_max"], 100)  # 静息+30
 
     def test_rx_phase_iii(self):
-        rx = build_prescription(self.conn, "CAD_PCI", "肝阳上亢", "低危",
+        rx = build_prescription(*self._tpl("CAD_PCI-F1"), "CAD_PCI", "肝阳上亢", "低危",
                                 phase="III", week_no=12, resting_hr=65, age=60)
         self.assertEqual(rx["phase"], "III")
         self.assertEqual(rx["baduanjin_level"], "L3")  # L2 升一档
@@ -157,7 +162,7 @@ class TestSafety(EngineTestBase):
         self.assertIn("block_resistance", actions)
 
     def test_apply_disables_resistance(self):
-        rx = build_prescription(self.conn, "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1)
+        rx = build_prescription(*self._tpl("CAD_PCI-F1"), "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1)
         s = check_safety(self.conn, "CAD_PCI", "肝阳上亢", "低危")
         rx = apply_safety(rx, s)
         res = json.loads(rx["resistance_json"])

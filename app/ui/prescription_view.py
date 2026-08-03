@@ -209,8 +209,12 @@ class PrescriptionView(ttk.Frame):
             return
         try:
             dc = self._disease_category()
+            # P2-T3：模板/参数集经 repo 读取，引擎纯函数调用
+            matrix = matrix_code(dc, pattern, risk)
+            tpl = self.app.repo.get_rx_template(dc, matrix)
+            bdj = self.app.repo.get_baduanjin_cfg(dc)
             rx = build_prescription(
-                self.conn, dc, pattern, risk,
+                tpl, bdj, dc, pattern, risk,
                 phase=self.pvars["phase"].get() or "II",
                 week_no=_int(self.pvars["week_no"].get(), 1),
                 resting_hr=_float(self.pvars["resting_hr"].get()),

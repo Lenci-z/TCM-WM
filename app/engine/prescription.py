@@ -38,6 +38,7 @@ def load_template(conn, disease_category: str, matrix: str):
     """调取处方模板（II 期基线模板，第一版各矩阵码一条）。
     注意：模板表 matrix_code 存格子编码（A2），处方表 matrix_code 存完整编码（CAD_PCI-A2），
     这里自动取末节，两处保持一致。
+    已迁移至 repo.get_rx_template()（P2-T3）；保留本函数仅为向后兼容旧调用。
     """
     m = matrix.rsplit("-", 1)[-1]  # CAD_PCI-A2 → A2
     row = conn.execute(
@@ -51,7 +52,9 @@ def load_template(conn, disease_category: str, matrix: str):
 
 
 def load_baduanjin_cfg(conn, disease_category: str) -> dict:
-    """读取八段锦参数集（起始映射/升降级/阶段角色）。"""
+    """读取八段锦参数集（起始映射/升降级/阶段角色）。
+    已迁移至 repo.get_baduanjin_cfg()（P2-T3）；保留本函数仅为向后兼容旧调用。
+    """
     row = conn.execute(
         "SELECT baduanjin_start_json FROM disease_config WHERE disease_category=?",
         (disease_category,),
@@ -102,17 +105,19 @@ def phase_adjust(template: dict, phase: str, risk_level: str, baduanjin_cfg: dic
     return out
 
 
-def build_prescription(conn, disease_category: str, pattern: str, risk_level: str,
+def build_prescription(template: dict, baduanjin_cfg: dict,
+                       disease_category: str, pattern: str, risk_level: str,
                        phase: str = "II", week_no: int = 1,
                        resting_hr=None, max_hr=None, age=None, on_beta_blocker=False,
                        gen_date=None, valid_days: int = 14):
-    """生成结构化康复处方（草稿状态，待医师审核签发）。
+    """生成结构化康复处方（草稿状态，待医师审核签发）。纯逻辑，无 conn（P2-T3）。
+    参数：
+      template: 处方模板 dict（由 repo.get_rx_template() 获取）
+      baduanjin_cfg: 八段锦参数集（由 repo.get_baduanjin_cfg() 获取）
     返回 dict（对应 prescription 表字段，status='草稿'）。
     """
     matrix = matrix_code(disease_category, pattern, risk_level)
-    template = load_template(conn, disease_category, matrix)
-    bdj_cfg = load_baduanjin_cfg(conn, disease_category)
-    tpl = phase_adjust(template, phase, risk_level, bdj_cfg)
+    tpl = phase_adjust(template, phase, risk_level, baduanjin_cfg)
 
     aerobic = tpl["aerobic"]
     rpe_min, rpe_max = aerobic["rpe_range"]
@@ -192,22 +197,30 @@ if __name__ == "__main__":
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from db import get_conn
+    from repo import Repository
 
     conn = get_conn()
+    repo = Repository(conn)
     print("=== 2.3 矩阵编码 ===")
     for pattern, risk in [("气虚血瘀", "中危"), ("肝阳上亢", "低危"), ("阳虚水泛", "高危")]:
         print(f"  {pattern}/{risk} → {matrix_code('CAD_PCI', pattern, risk)}")
 
     print("\n=== 2.4 处方生成 ===")
-    rx = build_prescription(conn, "CAD_PCI", "气虚血瘀", "中危", phase="II", week_no=3,
+    rx = build_prescription(repo.get_rx_template("CAD_PCI", "CAD_PCI-A2"),
+                            repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "气虚血瘀", "中危", phase="II", week_no=3,
                             resting_hr=60, age=65, on_beta_blocker=False)
     print(f"  II期 A2: 八段锦{rx['baduanjin_level']} 有氧{rx['aerobic_duration']}min×{rx['aerobic_freq']}次"
           f" RPE[{rx['rpe_min']},{rx['rpe_max']}] HR[{rx['hr_min']},{rx['hr_max']}] 矩阵{rx['matrix_code']}")
-    rx_i = build_prescription(conn, "CAD_PCI", "阳虚水泛", "高危", phase="I", week_no=1,
+    rx_i = build_prescription(repo.get_rx_template("CAD_PCI", "CAD_PCI-E3"),
+                            repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "阳虚水泛", "高危", phase="I", week_no=1,
                               resting_hr=70, age=70, on_beta_blocker=True)
     print(f"  I期 E3(服β): 八段锦{rx_i['baduanjin_level']} 有氧{rx_i['aerobic_duration']}min "
           f"RPE[{rx_i['rpe_min']},{rx_i['rpe_max']}] HR[{rx_i['hr_min']},{rx_i['hr_max']}]")
-    rx_iii = build_prescription(conn, "CAD_PCI", "肝阳上亢", "低危", phase="III", week_no=12,
+    rx_iii = build_prescription(repo.get_rx_template("CAD_PCI", "CAD_PCI-F1"),
+                            repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "肝阳上亢", "低危", phase="III", week_no=12,
                                 resting_hr=65, age=60, on_beta_blocker=False)
     print(f"  III期 F1: 八段锦{rx_iii['baduanjin_level']} 有氧{rx_iii['aerobic_duration']}min "
           f"RPE[{rx_iii['rpe_min']},{rx_iii['rpe_max']}]")

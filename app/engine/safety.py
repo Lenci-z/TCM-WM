@@ -86,9 +86,11 @@ if __name__ == "__main__":
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from db import get_conn
+    from repo import Repository
     from prescription import build_prescription
 
     conn = get_conn()
+    repo = Repository(conn)
     print("=== 2.5 安全校验 ===")
     for pattern, risk in [("肝阳上亢", "低危"), ("气虚血瘀", "中危"), ("阳虚水泛", "高危")]:
         s = check_safety(conn, "CAD_PCI", pattern, risk)
@@ -99,7 +101,9 @@ if __name__ == "__main__":
             print(f"    ⚠ {w['name']}: {w['detail'][:30]}...")
 
     print("\n=== 2.5 应用到处方（肝阳上亢 → 抗阻禁用） ===")
-    rx = build_prescription(conn, "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1,
+    rx = build_prescription(repo.get_rx_template("CAD_PCI", "CAD_PCI-F1"),
+                            repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1,
                             resting_hr=65, age=60)
     s = check_safety(conn, "CAD_PCI", "肝阳上亢", "低危")
     rx = apply_safety(rx, s)

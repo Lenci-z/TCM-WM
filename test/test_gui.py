@@ -24,6 +24,7 @@ import tkinter as tk  # noqa: E402
 from db import init_db, get_conn, import_seed, insert_row, encrypt_text  # noqa: E402
 from engine.prescription import build_prescription  # noqa: E402
 from engine.alerts import evaluate_alerts  # noqa: E402
+from repo import Repository  # noqa: E402
 
 
 class GuiTestBase(unittest.TestCase):
@@ -62,7 +63,9 @@ class GuiTestBase(unittest.TestCase):
         # 隐藏 Tk root（GUI 视图共用）
         cls.root = tk.Tk()
         cls.root.withdraw()
-        cls.app_stub = SimpleNamespace(conn=cls.conn, set_status=lambda s: None)
+        cls.repo = Repository(cls.conn)
+        cls.app_stub = SimpleNamespace(conn=cls.conn, set_status=lambda s: None,
+                                       repo=cls.repo)
 
     @classmethod
     def tearDownClass(cls):
@@ -116,8 +119,10 @@ class TestP1_3FullFieldSave(GuiTestBase):
         with patch("ui.prescription_view.messagebox"):
             pv = PrescriptionView(self.root, self.app_stub)
             pv.current_pid = self.pid
-            rx = build_prescription(self.conn, "CAD_PCI", "气虚血瘀", "中危",
-                                    phase="II", week_no=2, resting_hr=60, age=65)
+            rx = build_prescription(self.repo.get_rx_template("CAD_PCI", "CAD_PCI-A2"),
+                            self.repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "气虚血瘀", "中危",
+                            phase="II", week_no=2, resting_hr=60, age=65)
             rx["patient_id"] = self.pid
             pv.current_rx = rx
             pv._save_draft()
@@ -139,7 +144,9 @@ class TestP1_2Sign(GuiTestBase):
     def test_sign_with_simpledialog(self):
         """P1-2 回归：签发走显式 simpledialog，不依赖导入顺序。"""
         from ui.prescription_view import PrescriptionView
-        rx = build_prescription(self.conn, "CAD_PCI", "气虚血瘀", "中危", phase="II", week_no=1)
+        rx = build_prescription(self.repo.get_rx_template("CAD_PCI", "CAD_PCI-A2"),
+                            self.repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "气虚血瘀", "中危", phase="II", week_no=1)
         rx["patient_id"] = self.pid
         rx["status"] = "草稿"
         rid = insert_row(self.conn, "prescription", rx)

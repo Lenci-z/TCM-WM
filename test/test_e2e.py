@@ -88,7 +88,9 @@ class TestE2EFlow(unittest.TestCase):
         })
 
         # 3. 处方生成（B2 痰浊闭阻×中危）→ 安全校验 → 签发
-        rx = build_prescription(conn, "CAD_PCI", "痰浊闭阻", "中危", phase="II", week_no=2,
+        rx = build_prescription(self.repo.get_rx_template("CAD_PCI", "CAD_PCI-B2"),
+                            self.repo.get_baduanjin_cfg("CAD_PCI"),
+                            "CAD_PCI", "痰浊闭阻", "中危", phase="II", week_no=2,
                                 resting_hr=68, age=68, on_beta_blocker=False)
         self.assertEqual(rx["matrix_code"], "CAD_PCI-B2")
         safety = check_safety(conn, "CAD_PCI", "痰浊闭阻", "中危")

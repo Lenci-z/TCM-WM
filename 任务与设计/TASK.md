@@ -152,8 +152,10 @@
 - **验收**：Repository 层就位，52 测试 0 FAIL ✓（引擎/GUI/db.py 零改动）
 
 ### 5.2 P2-T2 stratification.py + pattern.py 解耦
-- [ ] 引擎函数移除 conn：`stratify(strat_config, clinical)`、`judge_pattern(patterns, selected)`
-- [ ] 规则加载改由调用方经 repo 完成；每步跑全量测试
+- [x] 引擎函数移除 conn：`stratify(strat_config, clinical)`、`judge_pattern(patterns, selected)`（2026-08-03）
+- [x] 规则加载改由调用方经 repo 完成；assessment_view 3 处调用同步；测试适配（2026-08-03）
+- [x] 执行发现并修复：repo 返回 pattern_name 键与 judge_pattern 的 name 键不一致（兼容两者）（2026-08-03）
+- **验收**：52 测试 0 FAIL ✓
 
 ### 5.3 P2-T3 prescription.py 解耦
 - [ ] `build_prescription(template, baduanjin_cfg, ...)` 移除 conn
