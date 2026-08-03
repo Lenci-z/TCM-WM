@@ -22,6 +22,7 @@ from engine.prescription import build_prescription  # noqa: E402
 from engine.safety import check_safety, apply_safety  # noqa: E402
 from engine.alerts import evaluate_alerts  # noqa: E402
 from engine.pdf_export import export_rx_pdf  # noqa: E402
+from repo import Repository  # noqa: E402
 
 
 class TestE2EFlow(unittest.TestCase):
@@ -32,6 +33,7 @@ class TestE2EFlow(unittest.TestCase):
         init_db(TEST_DB)
         import_seed(TEST_DB)
         cls.conn = get_conn(TEST_DB)
+        cls.repo = Repository(cls.conn)
 
     @classmethod
     def tearDownClass(cls):
@@ -68,7 +70,7 @@ class TestE2EFlow(unittest.TestCase):
             "PHQ9": 5, "GAD7": 4, "smoking": "每日", "drinking": "偶尔",
         })
         self.assertGreater(aid, 0)
-        main, sec, _ = judge_pattern(conn, ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"])
+        main, sec, _ = judge_pattern(self.repo.get_patterns(), ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"])
         self.assertEqual(main, "痰浊闭阻")
         insert_row(conn, "tcm_pattern", {
             "patient_id": pid, "assess_date": "2026-07-30", "main_pattern": main,
@@ -76,7 +78,7 @@ class TestE2EFlow(unittest.TestCase):
                 {"selected": ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"]}, ensure_ascii=False),
             "judge_method": "医师", "physician_confirm": 1,
         })
-        level, trig = stratify(conn, "CAD_PCI", {"LVEF": 46, "six_mwd": 550,
+        level, trig = stratify(self.repo.get_strat_config("CAD_PCI"), {"LVEF": 46, "six_mwd": 550,
                                                  "complete_revascularization": True})
         self.assertEqual(level, "中危")
         insert_row(conn, "risk_stratification", {

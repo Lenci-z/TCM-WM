@@ -21,6 +21,7 @@ from engine.prescription import (matrix_code, build_prescription,  # noqa: E402
                                  progression_decision)
 from engine.safety import check_safety, apply_safety  # noqa: E402
 from engine.alerts import evaluate_alerts, close_alert  # noqa: E402
+from repo import Repository  # noqa: E402
 
 
 class EngineTestBase(unittest.TestCase):
@@ -31,6 +32,9 @@ class EngineTestBase(unittest.TestCase):
         init_db(TEST_DB)
         import_seed(TEST_DB)
         cls.conn = get_conn(TEST_DB)
+        cls.repo = Repository(cls.conn)
+        cls.strat_cfg = cls.repo.get_strat_config("CAD_PCI")
+        cls.patterns = cls.repo.get_patterns()
 
     @classmethod
     def tearDownClass(cls):
@@ -41,53 +45,53 @@ class EngineTestBase(unittest.TestCase):
 
 class TestStratification(EngineTestBase):
     def test_high_risk(self):
-        level, trig = stratify(self.conn, "CAD_PCI", {"LVEF": 35, "complete_revascularization": 0})
+        level, trig = stratify(self.strat_cfg, {"LVEF": 35, "complete_revascularization": 0})
         self.assertEqual(level, "高危")
         self.assertTrue(trig)
 
     def test_mid_risk(self):
-        level, _ = stratify(self.conn, "CAD_PCI",
+        level, _ = stratify(self.strat_cfg,
                             {"LVEF": 45, "met_capacity": 6,
                              "revascularization_status": "incomplete_no_ischemia"})
         self.assertEqual(level, "中危")
 
     def test_low_risk(self):
-        level, _ = stratify(self.conn, "CAD_PCI",
+        level, _ = stratify(self.strat_cfg,
                             {"LVEF": 55, "complete_revascularization": True,
                              "exercise_test_clean": True, "met_capacity": 8})
         self.assertEqual(level, "低危")
 
     def test_6mwd_inference(self):
         """300m → METs≈3.06 <5 → 高危（6MWD 推算链路）。"""
-        level, _ = stratify(self.conn, "CAD_PCI", {"LVEF": 50, "six_mwd": 300})
+        level, _ = stratify(self.strat_cfg, {"LVEF": 50, "six_mwd": 300})
         self.assertEqual(level, "高危")
 
     def test_missing_data_conservative(self):
-        level, _ = stratify(self.conn, "CAD_PCI", {})
+        level, _ = stratify(self.strat_cfg, {})
         self.assertEqual(level, "高危")  # 缺数据保守判高危
 
 
 class TestPattern(EngineTestBase):
     def test_qixu_xy(self):
-        main, sec, _ = judge_pattern(self.conn,
+        main, sec, _ = judge_pattern(self.patterns,
             ["胸闷隐痛", "乏力", "气短", "动则加重", "舌暗", "瘀斑", "脉细", "脉涩"])
         self.assertEqual(main, "气虚血瘀")
 
     def test_tanzhuo(self):
-        main, _, _ = judge_pattern(self.conn, ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"])
+        main, _, _ = judge_pattern(self.patterns, ["胸闷如窒", "体胖", "痰多", "苔厚腻", "脉滑"])
         self.assertEqual(main, "痰浊闭阻")
 
     def test_qiyin(self):
-        main, _, _ = judge_pattern(self.conn,
+        main, _, _ = judge_pattern(self.patterns,
             ["心悸", "乏力", "口干", "五心烦热", "舌红", "少苔", "脉细", "脉数"])
         self.assertEqual(main, "气阴两虚")
 
     def test_ganyang(self):
-        main, _, _ = judge_pattern(self.conn, ["头晕", "头痛", "烦躁", "易怒", "面红", "舌红", "脉弦"])
+        main, _, _ = judge_pattern(self.patterns, ["头晕", "头痛", "烦躁", "易怒", "面红", "舌红", "脉弦"])
         self.assertEqual(main, "肝阳上亢")
 
     def test_empty(self):
-        main, sec, _ = judge_pattern(self.conn, [])
+        main, sec, _ = judge_pattern(self.patterns, [])
         self.assertIsNone(main)
         self.assertIsNone(sec)
 

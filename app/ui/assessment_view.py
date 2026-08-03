@@ -194,7 +194,7 @@ class AssessmentView(ttk.Frame):
     def _judge_tcm(self):
         """四诊勾选 → 证型判定。"""
         selected = [k for k, v in self.tcm_checks.items() if v.get()]
-        main, sec, scores = judge_pattern(self.conn, selected)
+        main, sec, scores = judge_pattern(self.app.repo.get_patterns(), selected)
         self.main_pattern = main
         self.secondary_pattern = sec
         if main:
@@ -322,7 +322,7 @@ class AssessmentView(ttk.Frame):
             selected = [k for k, v in self.tcm_checks.items() if v.get()]
             main = self.pattern_var.get() or (self.main_pattern if hasattr(self, "main_pattern") else None)
             if not main and selected:
-                main, sec, _ = judge_pattern(self.conn, selected)
+                main, sec, _ = judge_pattern(self.app.repo.get_patterns(), selected)
                 self.secondary_pattern = sec
             elif not main:
                 main, self.secondary_pattern = None, None
@@ -341,7 +341,7 @@ class AssessmentView(ttk.Frame):
             # 3. 危险分层：临床指标 → stratify → risk_stratification
             dc = self._disease_category()
             clinical = self._build_clinical()
-            level, triggered = stratify(self.conn, dc, clinical)
+            level, triggered = stratify(self.app.repo.get_strat_config(dc), clinical)
             strat_data = {
                 "patient_id": self.current_pid,
                 "disease_category": dc,
