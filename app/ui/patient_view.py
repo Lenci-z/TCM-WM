@@ -51,6 +51,8 @@ class PatientView(ttk.Frame):
         ttk.Button(btns, text="载入选中", command=self._load_form).pack(side="left", padx=2)
         self.btn_delete = ttk.Button(btns, text="删除选中", command=self._delete)
         self.btn_delete.pack(side="left", padx=2)
+        self.btn_export = ttk.Button(btns, text="导出患者 CSV", command=self._export_csv)
+        self.btn_export.pack(side="left", padx=2)
 
         # ---- 右侧：建档表单 ----
         self._build_form(right)
@@ -128,6 +130,22 @@ class PatientView(ttk.Frame):
         """RBAC 按钮显隐（P3-T3）：删除按钮仅 patient:delete 权限可用。"""
         state = tk.NORMAL if self.app.check_perm("patient:delete") else tk.DISABLED
         self.btn_delete.config(state=state)
+
+    def _export_csv(self):
+        """导出患者列表 CSV（阶段7-3）。"""
+        from tkinter import filedialog, messagebox
+        from csv_export import export_csv, patient_csv_rows
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV 文件", "*.csv")],
+            initialfile="患者列表.csv")
+        if not path:
+            return
+        patients = self.app.repo.list_patients()
+        headers = ["patient_id", "name", "gender", "birth_date", "disease_category",
+                   "register_date", "status", "contact", "inpatient_no"]
+        n = export_csv(path, headers, patient_csv_rows(patients))
+        _logger.info("导出患者 CSV: %s (%d 条)", path, n)
+        messagebox.showinfo("导出成功", f"已导出 {n} 条患者记录")
 
     # ---------- 数据 ----------
     def _today(self):

@@ -114,6 +114,8 @@ class RulesView(ttk.Frame):
         self.editor_container.pack(fill="both", expand=True)
         self.btn_save_rule = ttk.Button(editor, text="保存修改（校验JSON）", command=self._save_edit)
         self.btn_save_rule.pack(pady=6)
+        self.btn_export_audit = ttk.Button(editor, text="导出审计日志 CSV", command=self._export_audit)
+        self.btn_export_audit.pack(pady=4)
         self.edit_status = tk.StringVar(value="")
         tk.Label(editor, textvariable=self.edit_status, fg="green").pack(anchor="w")
 
@@ -238,9 +240,27 @@ class RulesView(ttk.Frame):
         self.edit_status.set("已保存，规则即时生效（重新生成处方可见变化）")
         self.app.set_status(f"规则已更新：{cfg['table']} #{self.current_pk}")
 
+    def _export_audit(self):
+        """导出审计日志 CSV（阶段7-3，管理员）。"""
+        from tkinter import filedialog, messagebox
+        from csv_export import export_csv, audit_csv_rows
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV 文件", "*.csv")],
+            initialfile="审计日志.csv")
+        if not path:
+            return
+        rows = audit_csv_rows(self.app.repo.list_audit_logs(1000))
+        headers = ["log_id", "username", "action_time", "action_type",
+                   "table_name", "record_id", "detail"]
+        n = export_csv(path, headers, rows)
+        _logger.info("导出审计日志 CSV: %s (%d 条)", path, n)
+        messagebox.showinfo("导出成功", f"已导出 {n} 条审计记录")
+
     def _apply_permissions(self):
         """RBAC 按钮显隐（P3-T3）：保存仅管理员（rules:edit）。"""
         self.btn_save_rule.config(
+            state=tk.NORMAL if self.app.check_perm("rules:edit") else tk.DISABLED)
+        self.btn_export_audit.config(
             state=tk.NORMAL if self.app.check_perm("rules:edit") else tk.DISABLED)
 
     def refresh(self):

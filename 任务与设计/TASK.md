@@ -201,4 +201,28 @@ P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调
 - [x] 全量测试 102 用例 0 FAIL（2026-08-03）
 
 ---
+
+## 阶段7 临床功能打磨（P4-暂缓期，用户决策 2026-08-03）
+
+> P4 架构演进（2-4 周）暂缓启动。技术栈路线备选已记录：A=PySide6 桌面（科室级部署）/ B=FastAPI+React Web（多中心远程）/ C=继续 tkinter；当前执行 D=先打磨临床功能，待"扩大使用"信号明确后再评估 A/B/C。
+
+### 7.1 P4 路线备选登记
+- [x] 路线 A/B/C 已记录备选（决策记录见开发记录 2026-08-03）（2026-08-03）
+
+---
+### 7.2 依从性打卡（adherence_log）
+- [x] repo: insert_adherence/list_adherences/list_adherence_stats（2026-08-03）
+- [x] adherence_view.py：患者列表+打卡表单（八段锦/运动/服药/测量+症状+RPE）+历史+统计（2026-08-03）
+- [x] main.py 注册"依从性打卡" Tab（2026-08-03）
+
+### 7.3 数据看板
+- [x] repo: stats_summary/pattern_distribution/list_open_alerts（2026-08-03）
+- [x] dashboard_view.py：8 统计卡片+分层/证型分布+待处置预警概览（2026-08-03）
+- [x] main.py 注册"数据看板" Tab（2026-08-03）
+
+### 7.4 CSV 导出
+- [x] csv_export.py（UTF-8 BOM）+ 患者/随访/审计 导出（2026-08-03）
+- [x] patient_view 导出患者 / followup_view 导出随访 / rules_view 导出审计（2026-08-03）
+
+---
 *状态记录：每完成一项将 - [ ] 改为 - [x] 并记录日期。*

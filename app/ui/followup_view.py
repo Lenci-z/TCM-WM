@@ -50,6 +50,8 @@ class FollowupView(ttk.Frame):
         toolbar = ttk.Frame(top)
         toolbar.pack(fill="x", pady=4)
         ttk.Button(toolbar, text="生成随访计划", command=self._generate_plan).pack(side="left", padx=4)
+        self.btn_export = ttk.Button(toolbar, text="导出随访 CSV", command=self._export_csv)
+        self.btn_export.pack(side="left", padx=4)
         ttk.Button(toolbar, text="标记完成（复评录入）", command=self._complete_fu).pack(side="left", padx=4)
         ttk.Button(toolbar, text="查看必查项", command=self._show_required).pack(side="left", padx=4)
         self.fu_status = tk.StringVar(value="")
@@ -79,6 +81,22 @@ class FollowupView(ttk.Frame):
                               "复评后如需调整处方请到『处方管理』Tab。",
                   fg="#666666").pack(anchor="w", pady=4)
         self.refresh()
+
+    def _export_csv(self):
+        """导出随访记录 CSV（阶段7-3）。"""
+        from tkinter import filedialog, messagebox
+        from csv_export import export_csv, followup_csv_rows
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV 文件", "*.csv")],
+            initialfile="随访记录.csv")
+        if not path:
+            return
+        rows = followup_csv_rows(self.app.repo.list_followups_all())
+        headers = ["followup_id", "patient_id", "patient_name", "fu_type",
+                   "plan_date", "actual_date", "fu_status", "handler"]
+        n = export_csv(path, headers, rows)
+        _logger.info("导出随访 CSV: %s (%d 条)", path, n)
+        messagebox.showinfo("导出成功", f"已导出 {n} 条随访记录")
 
     # ---------- 数据 ----------
     def refresh(self):

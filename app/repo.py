@@ -640,6 +640,126 @@ class Repository:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def list_followups_all(self, limit: int = 500) -> list:
+        """全量随访记录（含患者名，导出用，按计划日期倒序）。"""
+        rows = self.conn.execute(
+            "SELECT f.*, p.name_enc FROM follow_up f "
+            "LEFT JOIN patient p ON f.patient_id=p.patient_id "
+            "ORDER BY f.plan_date DESC, f.fu_id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        items = []
+        for r in rows:
+            item = dict(r)
+            item["patient_name"] = (
+                get_security().decrypt(r["name_enc"]) if r["name_enc"] else "")
+            items.append(item)
+        return items
+
+    # ================= 依从性打卡（阶段7-1） =================
+
+    def insert_adherence(self, data: dict) -> int:
+        """写入依从性打卡记录（adherence_log）。"""
+        return insert_row(self.conn, "adherence_log", data)
+
+    def list_adherences(self, patient_id: int, limit: int = 200) -> list:
+        """患者打卡历史（按日期倒序）。"""
+        rows = self.conn.execute(
+            "SELECT * FROM adherence_log WHERE patient_id=? "
+            "ORDER BY log_date DESC, log_id DESC LIMIT ?",
+            (patient_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def list_adherence_stats(self, patient_id: int) -> dict:
+        """打卡统计：总天数/完成率/运动总时长/八段锦完成次数。"""
+        row = self.conn.execute(
+            "SELECT COUNT(DISTINCT log_date) AS days, "
+            "SUM(CASE WHEN is_done=1 THEN 1 ELSE 0 END) AS done_cnt, "
+            "COUNT(*) AS total_cnt, "
+            "SUM(CASE WHEN task_type='运动' AND is_done=1 THEN actual_duration ELSE 0 END) AS exercise_min "
+            "FROM adherence_log WHERE patient_id=?",
+            (patient_id,),
+        ).fetchone()
+        bdj = self.conn.execute(
+            "SELECT COUNT(*) FROM adherence_log "
+            "WHERE patient_id=? AND task_type='八段锦' AND is_done=1",
+            (patient_id,),
+        ).fetchone()[0]
+        d = dict(row)
+        return {
+            "days": d["days"] or 0,
+            "done_cnt": d["done_cnt"] or 0,
+            "total_cnt": d["total_cnt"] or 0,
+            "exercise_min": d["exercise_min"] or 0,
+            "baduanjin_done": bdj,
+            "completion_rate": round((d["done_cnt"] or 0) * 100.0 / d["total_cnt"], 1)
+            if d["total_cnt"] else 0.0,
+        }
+
+    # ================= 数据看板（阶段7-2） =================
+
+    def stats_summary(self) -> dict:
+        """看板统计：患者/在组/分层/随访/预警/处方概览。"""
+        n_pat = self.conn.execute("SELECT COUNT(*) FROM patient").fetchone()[0]
+        n_group = self.conn.execute(
+            "SELECT COUNT(*) FROM patient WHERE status='在组'").fetchone()[0]
+        risk = dict(self.conn.execute(
+            "SELECT risk_level, COUNT(*) FROM risk_stratification "
+            "WHERE physician_confirm=1 AND strat_id IN ("
+            "  SELECT MAX(strat_id) FROM risk_stratification "
+            "  WHERE physician_confirm=1 GROUP BY patient_id) "
+            "GROUP BY risk_level").fetchall())
+        n_fu_pending = self.conn.execute(
+            "SELECT COUNT(*) FROM follow_up WHERE status='待随访'").fetchone()[0]
+        n_alert_open = self.conn.execute(
+            "SELECT COUNT(*) FROM alert WHERE status='待处置'").fetchone()[0]
+        n_rx_signed = self.conn.execute(
+            "SELECT COUNT(*) FROM prescription WHERE status='已签发'").fetchone()[0]
+        return {
+            "total_patients": n_pat,
+            "in_group": n_group,
+            "risk_high": risk.get("高危", 0),
+            "risk_medium": risk.get("中危", 0),
+            "risk_low": risk.get("低危", 0),
+            "pending_followups": n_fu_pending,
+            "open_alerts": n_alert_open,
+            "signed_rx": n_rx_signed,
+        }
+
+    def pattern_distribution(self) -> list:
+        """证型分布（最新确认证型）。"""
+        rows = self.conn.execute(
+            "SELECT main_pattern, COUNT(*) AS cnt FROM tcm_pattern "
+            "WHERE physician_confirm=1 AND pattern_id IN ("
+            "  SELECT MAX(pattern_id) FROM tcm_pattern "
+            "  WHERE physician_confirm=1 GROUP BY patient_id) "
+            "GROUP BY main_pattern ORDER BY cnt DESC").fetchall()
+        return [dict(r) for r in rows]
+
+    def list_open_alerts(self, limit: int = 10) -> list:
+        """待处置预警列表（看板概览：规则名 JOIN rule_alert，患者名解密）。"""
+        rows = self.conn.execute(
+            "SELECT a.alert_id, a.level, a.rule_code, "
+            "COALESCE(ra.name, a.rule_code) AS rule_name, "
+            "a.trigger_time, a.trigger_data_json, a.status, "
+            "p.patient_id, p.name_enc "
+            "FROM alert a "
+            "LEFT JOIN rule_alert ra ON a.rule_code=ra.rule_code "
+            "LEFT JOIN patient p ON a.patient_id=p.patient_id "
+            "WHERE a.status='待处置' ORDER BY a.trigger_time DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        items = []
+        for r in rows:
+            item = dict(r)
+            item["patient_name"] = (
+                get_security().decrypt(r["name_enc"]) if r["name_enc"] else "")
+            item["alert_date"] = r["trigger_time"]
+            item["detail"] = (r["trigger_data_json"] or "")[:120]
+            items.append(item)
+        return items
+
     # ================= 通用 DAO =================
 
     def query_all(self, sql: str, params: tuple = ()) -> list:

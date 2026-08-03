@@ -74,17 +74,23 @@ class MainApp(tk.Tk):
         from ui.prescription_view import PrescriptionView
         from ui.followup_view import FollowupView
         from ui.rules_view import RulesView
+        from ui.adherence_view import AdherenceView
+        from ui.dashboard_view import DashboardView
 
         self.tab_patient = PatientView(self.notebook, self)
         self.tab_assess = AssessmentView(self.notebook, self)
         self.tab_rx = PrescriptionView(self.notebook, self)
         self.tab_followup = FollowupView(self.notebook, self)
+        self.tab_dashboard = DashboardView(self.notebook, self)
+        self.tab_adherence = AdherenceView(self.notebook, self)
         self.tab_rules = RulesView(self.notebook, self)
 
         self.notebook.add(self.tab_patient, text="  患者管理  ")
         self.notebook.add(self.tab_assess, text="  评估录入  ")
         self.notebook.add(self.tab_rx, text="  处方管理  ")
         self.notebook.add(self.tab_followup, text="  随访管理  ")
+        self.notebook.add(self.tab_dashboard, text="  数据看板  ")
+        self.notebook.add(self.tab_adherence, text="  依从性打卡  ")
         self.notebook.add(self.tab_rules, text="  规则库维护  ")
 
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_change)
