@@ -86,8 +86,24 @@ class AssessmentView(ttk.Frame):
         canvas = tk.Canvas(right, highlightthickness=0)
         sb = ttk.Scrollbar(right, orient="vertical", command=canvas.yview)
         self.form = ttk.Frame(canvas)
-        self.form.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=self.form, anchor="nw")
+        _win_id = canvas.create_window((0, 0), window=self.form, anchor="nw")
+        # 滚动区域随内容高度自动扩展；表单宽度跟随画布可视宽度（防右缘裁剪）
+        self.form.bind("<Configure>",
+                       lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>",
+                    lambda e: canvas.itemconfigure(_win_id, width=e.width))
+
+        def _on_mousewheel(event):
+            # Windows 滚轮：delta 为 ±120 的倍数 → 滚动行数
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # 鼠标移入表单区绑定滚轮，移出解绑（不影响其他区域）
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+        # Linux 滚轮兼容（Button-4/5）
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+
         canvas.configure(yscrollcommand=sb.set)
         canvas.pack(side="left", fill="both", expand=True)
         sb.pack(side="right", fill="y")
