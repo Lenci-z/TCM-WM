@@ -43,10 +43,11 @@ class GuiTestBase(unittest.TestCase):
         init_db(TEST_DB)
         import_seed(TEST_DB)
         cls.conn = get_conn(TEST_DB)
+        cls.repo = Repository(cls.conn)
         # 测试患者（张三：PCI 术后）
-        cls.pid = insert_row(cls.conn, "patient", {
-            "name_enc": encrypt_text("张三"), "gender": "男", "birth_date": "1960-05-01",
-            "contact_enc": encrypt_text("13800000000"), "inpatient_no": "ZY20260001",
+        cls.pid = cls.repo.insert_patient({
+            "name": "张三", "gender": "男", "birth_date": "1960-05-01",
+            "contact": "13800000000", "inpatient_no": "ZY20260001",
             "register_date": "2026-07-28", "physician": "李医师", "status": "在组",
             "disease_category": "CAD_PCI",
         })
@@ -107,8 +108,8 @@ class TestP1_1LoadForm(GuiTestBase):
         """无手术记录时清空不崩溃。"""
         from ui.patient_view import PatientView
         with patch("ui.patient_view.messagebox"):
-            pid2 = insert_row(self.conn, "patient", {
-                "name_enc": encrypt_text("李四"), "register_date": "2026-08-01",
+            pid2 = self.repo.insert_patient({
+                "name": "李四", "register_date": "2026-08-01",
                 "disease_category": "CAD_PCI"})
             pv = PatientView(self.root, self.app_stub)
             pv.refresh()

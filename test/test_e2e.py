@@ -45,22 +45,22 @@ class TestE2EFlow(unittest.TestCase):
     def test_full_flow(self):
         conn = self.conn
 
-        # 1. 建档（patient + procedure）
-        pid = insert_row(conn, "patient", {
-            "name_enc": encrypt_text("王五"),
+        # 1. 建档（patient + procedure，经 repo：AES 透明加密）
+        pid = self.repo.insert_patient({
+            "name": "王五",
             "gender": "男", "birth_date": "1958-11-02",
-            "contact_enc": encrypt_text("13900001111"),
+            "contact": "13900001111",
             "inpatient_no": "ZY20268888", "register_date": "2026-07-28",
             "physician": "李医师", "status": "在组", "disease_category": "CAD_PCI",
         })
-        insert_row(conn, "procedure", {
+        self.repo.insert_procedure({
             "patient_id": pid, "proc_date": "2026-07-28", "proc_type": "PCI",
             "stent_count": 2, "lesion_vessel_count": 1,
             "complete_revascularization": 1, "is_emergency": 0,
             "incision_type": "经皮", "anticoagulation": "DAPT",
         })
-        p = conn.execute("SELECT name_enc FROM patient WHERE patient_id=?", (pid,)).fetchone()
-        self.assertEqual(p["name_enc"], encrypt_text("王五"))  # 加密存储
+        p = self.repo.get_patient(pid)
+        self.assertEqual(p["name"], "王五")  # repo 解密返回明文（AES 存储）
 
         # 2. 评估（基线：痰浊闭阻 + 中危）
         aid = insert_row(conn, "assessment", {

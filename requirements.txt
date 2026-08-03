@@ -1,3 +1,5 @@
 # 中西医结合心血管康复系统 运行依赖
 # Python 3.11 + tkinter（标准库自带）+ SQLite（标准库自带）
-reportlab>=4.0    # 处方单 PDF 导出（中文字体 msyh/simhei）
+reportlab>=4.0        # 处方单 PDF 导出（中文字体 msyh/simhei）
+cryptography>=42.0    # P3: AES-256-CBC 加密（security.py）
+bcrypt>=4.0           # P3: 密码哈希（security.py）

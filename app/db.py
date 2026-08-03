@@ -363,8 +363,42 @@ def init_db(db_path: str = DB_PATH) -> None:
 # 迁移列表：[(版本号, 名称, [SQL, ...])]
 # 版本号从 1 开始递增；schema_version 表记录已应用版本。
 MIGRATIONS = [
-    # 示例（未来 v0.3 加字段时启用）：
-    # (2, "patient_phone2", ["ALTER TABLE patient ADD COLUMN phone2 TEXT"]),
+    # P3-T1（2026-08-03）：安全合规表结构 user/role/audit_log
+    (
+        2, "add_user_role_audit_tables",
+        [
+            """CREATE TABLE IF NOT EXISTS user (
+                user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                username      TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                display_name  TEXT,
+                role          TEXT NOT NULL DEFAULT '治疗师',
+                enabled       INTEGER NOT NULL DEFAULT 1,
+                created_at    TEXT DEFAULT (datetime('now','localtime')),
+                last_login    TEXT,
+                failed_count  INTEGER DEFAULT 0,
+                locked_until  TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS role (
+                role_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                role_name        TEXT NOT NULL UNIQUE,
+                permissions_json TEXT NOT NULL,
+                enabled          INTEGER NOT NULL DEFAULT 1
+            )""",
+            """CREATE TABLE IF NOT EXISTS audit_log (
+                log_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER,
+                action_time TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                table_name  TEXT,
+                record_id   INTEGER,
+                old_value   TEXT,
+                new_value   TEXT,
+                ip_address  TEXT,
+                detail      TEXT
+            )""",
+        ],
+    ),
 ]
 
 

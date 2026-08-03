@@ -15,6 +15,10 @@ venv/
 # 运行日志
 data/logs/
 
+# AES 本地密钥文件（P3 安全：不入库）
+data/.secret_key
+data/*.key
+
 # 输出产物
 *.pdf
 outputs/

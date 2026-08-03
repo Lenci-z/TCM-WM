@@ -7,7 +7,8 @@
 """
 import json
 
-from db import encrypt_text, decrypt_text, insert_row, update_row, now_str
+from db import insert_row, update_row, now_str
+from security import get_security
 
 
 class Repository:
@@ -190,10 +191,10 @@ class Repository:
         for r in rows:
             result.append({
                 "patient_id": r["patient_id"],
-                "name": decrypt_text(r["name_enc"]),
+                "name": get_security().decrypt(r["name_enc"]),
                 "gender": r["gender"],
                 "birth_date": r["birth_date"],
-                "contact": decrypt_text(r["contact_enc"]),
+                "contact": get_security().decrypt(r["contact_enc"]),
                 "inpatient_no": r["inpatient_no"],
                 "register_date": r["register_date"],
                 "physician": r["physician"],
@@ -213,10 +214,10 @@ class Repository:
             return None
         return {
             "patient_id": row["patient_id"],
-            "name": decrypt_text(row["name_enc"]),
+            "name": get_security().decrypt(row["name_enc"]),
             "gender": row["gender"],
             "birth_date": row["birth_date"],
-            "contact": decrypt_text(row["contact_enc"]),
+            "contact": get_security().decrypt(row["contact_enc"]),
             "inpatient_no": row["inpatient_no"],
             "register_date": row["register_date"],
             "physician": row["physician"],
@@ -243,7 +244,7 @@ class Repository:
         if not row:
             return {}
         return {
-            "name": decrypt_text(row["name_enc"]),
+            "name": get_security().decrypt(row["name_enc"]),
             "gender": row["gender"],
             "birth_date": row["birth_date"],
         }
@@ -255,18 +256,18 @@ class Repository:
         """
         enc_data = dict(data)
         if "name" in enc_data:
-            enc_data["name_enc"] = encrypt_text(enc_data.pop("name"))
+            enc_data["name_enc"] = get_security().encrypt(enc_data.pop("name"))
         if "contact" in enc_data:
-            enc_data["contact_enc"] = encrypt_text(enc_data.pop("contact"))
+            enc_data["contact_enc"] = get_security().encrypt(enc_data.pop("contact"))
         return insert_row(self.conn, "patient", enc_data)
 
     def update_patient(self, patient_id: int, data: dict) -> None:
         """更新患者（自动加密 name/contact）。"""
         enc_data = dict(data)
         if "name" in enc_data:
-            enc_data["name_enc"] = encrypt_text(enc_data.pop("name"))
+            enc_data["name_enc"] = get_security().encrypt(enc_data.pop("name"))
         if "contact" in enc_data:
-            enc_data["contact_enc"] = encrypt_text(enc_data.pop("contact"))
+            enc_data["contact_enc"] = get_security().encrypt(enc_data.pop("contact"))
         update_row(self.conn, "patient", enc_data,
                    "patient_id=?", (patient_id,))
 
@@ -455,7 +456,7 @@ class Repository:
         result = []
         for r in rows:
             item = dict(r)
-            item["patient_name"] = decrypt_text(r["name_enc"])
+            item["patient_name"] = get_security().decrypt(r["name_enc"])
             result.append(item)
         return result
 
@@ -544,7 +545,7 @@ class Repository:
         result = []
         for r in rows:
             item = dict(r)
-            item["patient_name"] = decrypt_text(r["name_enc"])
+            item["patient_name"] = get_security().decrypt(r["name_enc"])
             result.append(item)
         return result
 
