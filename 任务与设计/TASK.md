@@ -184,21 +184,21 @@ P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调
 > 目标：达到临床部署最低安全合规（个保法 + 等保2.0 三级基线）。P2 完成前置。
 
 ### 6.1 P3-T1 安全基础设施（AES 加密 + 密码哈希 + 表结构 + 迁移脚本）
-- [ ] db.py MIGRATIONS 新增 user/role/audit_log 三表（版本2）
-- [ ] app/security.py：SecurityManager（AES-256-CBC 加密 + bcrypt 哈希 + 会话 token）
-- [ ] repo.py 加密 XOR→AES 切换；config.ini 密钥来源改造（环境变量/本地密钥文件）
-- [ ] scripts/migrate_encrypt.py：XOR→AES 迁移（自动备份 + 重加密）
-- [ ] test_security.py：AES 往返/bcrypt 验证
+- [x] db.py MIGRATIONS 新增 user/role/audit_log 三表（版本2）（2026-08-03）
+- [x] app/security.py：SecurityManager（AES-256-CBC + bcrypt + 内存会话 token）（2026-08-03）
+- [x] repo.py 加密 XOR→AES 切换；config.ini 密钥改造（REHAB_ENCRYPT_KEY 环境变量/本地 data/.secret_key）（2026-08-03）
+- [x] scripts/migrate_encrypt.py：XOR→AES 迁移（自动备份 + 重加密，可注入密钥测试）（2026-08-03）
+- [x] test_security.py：AES 往返/bcrypt/token/迁移 15 用例（2026-08-03）
 
 ### 6.2 P3-T2 认证与权限（登录 + RBAC + 审计）
-- [ ] app/auth.py：AuthManager（登录/失败锁定/RBAC 权限矩阵）
-- [ ] repo.py 用户/审计方法；app/ui/login_view.py 登录窗口
-- [ ] main.py 启动登录流；关键操作写审计日志
+- [x] app/auth.py：AuthManager（登录/5次失败锁15分钟/RBAC 4角色权限矩阵/审计）（2026-08-03）
+- [x] repo.py 用户/审计方法 7 个；app/ui/login_view.py 登录/初始化管理员窗口（2026-08-03）
+- [x] main.py 启动登录流（生产入口 require_login）+ 登录/登出审计留痕（2026-08-03）
 
 ### 6.3 P3-T3 GUI 权限适配 + 输入校验 + 测试
-- [ ] 菜单/按钮按角色显示隐藏（处方签发/规则编辑/删除等）
-- [ ] 数值范围校验（LVEF 0-100 等）；test_security.py 完整
-- [ ] 全量测试 0 FAIL
+- [x] 4 视图 5 回调 RBAC 拦截（删除/签发/PDF导出/规则编辑/评估录入）（2026-08-03）
+- [x] 数值范围校验（评估11字段 + 处方3参数）；TestRbacGuard 3 用例（2026-08-03）
+- [x] 全量测试 102 用例 0 FAIL（2026-08-03）
 
 ---
 *状态记录：每完成一项将 - [ ] 改为 - [x] 并记录日期。*
