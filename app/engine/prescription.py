@@ -84,7 +84,7 @@ def phase_adjust(template: dict, phase: str, risk_level: str, baduanjin_cfg: dic
     out = json.loads(json.dumps(template))  # 深拷贝
     aerobic = out["aerobic"]
     if phase == "I":
-        aerobic["rpe_range"] = [9, 11]
+        aerobic["rpe_range"] = list(PHASE_RPE["I"])   # 9–11
         aerobic["duration_min"] = max(10, aerobic["duration_min"] // 2)
         aerobic["frequency_per_week"] = max(3, aerobic["frequency_per_week"] - 1)
         # I 期八段锦为主要形式：按起始映射
@@ -93,7 +93,7 @@ def phase_adjust(template: dict, phase: str, risk_level: str, baduanjin_cfg: dic
     elif phase == "III":
         # 维持期：时长 +10 分钟（上限 40），RPE 间歇可达 15
         aerobic["duration_min"] = min(40, aerobic["duration_min"] + 10)
-        aerobic["rpe_range"] = [12, 14]
+        aerobic["rpe_range"] = list(PHASE_RPE["III"])  # 12–14，间歇可达 15
         # 八段锦居家维持：级别升一档（低危且耐受良好 → L3+）
         levels = ["L0", "L1", "L2", "L3", "L3+"]
         cur = out["baduanjin_level"]

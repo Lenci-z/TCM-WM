@@ -286,8 +286,17 @@ class AssessmentView(ttk.Frame):
             self.tongue_var.delete(0, "end")
             self.tongue_var.insert(0, path)
 
+    def _disease_category(self):
+        """从当前患者读取病种（第一版启用 CAD_PCI，多病种架构预留）。"""
+        if self.current_pid is None:
+            return "CAD_PCI"
+        row = self.conn.execute(
+            "SELECT disease_category FROM patient WHERE patient_id=?", (self.current_pid,)
+        ).fetchone()
+        return (row["disease_category"] if row and row["disease_category"] else "CAD_PCI")
+
     def _get_assessment_data(self):
-        data = {"patient_id": self.current_pid, "disease_category": "CAD_PCI",
+        data = {"patient_id": self.current_pid, "disease_category": self._disease_category(),
                 "assessment_type": self.head_var["type"].get(),
                 "assess_date": self.head_var["date"].get().strip() or date.today().isoformat()}
         for key, var in self.vars.items():
@@ -328,11 +337,12 @@ class AssessmentView(ttk.Frame):
             insert_row(self.conn, "tcm_pattern", tcm_data)
 
             # 3. 危险分层：临床指标 → stratify → risk_stratification
+            dc = self._disease_category()
             clinical = self._build_clinical()
-            level, triggered = stratify(self.conn, "CAD_PCI", clinical)
+            level, triggered = stratify(self.conn, dc, clinical)
             strat_data = {
                 "patient_id": self.current_pid,
-                "disease_category": "CAD_PCI",
+                "disease_category": dc,
                 "assess_date": data["assess_date"],
                 "risk_level": level,
                 "param_version": "0.1",
@@ -369,6 +379,8 @@ class AssessmentView(ttk.Frame):
         clinical["exercise_symptom"] = "angina_or_st_dep" if self.svars["exercise_test"].get() == "有缺血" else "none"
         clinical["exercise_bp_response"] = "no_rise_or_fall" if self.svars["bp_response"].get() == "不升或下降" else "normal"
         clinical["heart_failure_acute"] = self.svars["hf_acute"].get() == "是"
+        # 低危条件"无心衰症状"（P2-1：统一键名；急性期=否 视为无心衰症状，MVP 口径）
+        clinical["heart_failure_symptom"] = self.svars["hf_acute"].get() != "是"
         clinical["residual_ischemia"] = self.svars["residual_ischemia"].get() == "是"
         clinical["mild_symptom_moderate"] = self.svars["mild_symptom"].get() == "是"
         clinical["revascularization_status"] = "incomplete_no_ischemia" if (not complete and self.svars["residual_ischemia"].get() != "是") else "complete"

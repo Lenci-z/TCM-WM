@@ -7,7 +7,7 @@ import sys
 import os
 import json
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -170,6 +170,15 @@ class PrescriptionView(ttk.Frame):
         self.avars["rpe_max"].insert(0, rx["rpe_max"] or "")
         self.saved_var.set(f"已载入处方 #{rx['rx_id']}（状态：{rx['status']}）")
 
+    def _disease_category(self):
+        """从当前患者读取病种（第一版启用 CAD_PCI，多病种架构预留）。"""
+        if self.current_pid is None:
+            return "CAD_PCI"
+        row = self.conn.execute(
+            "SELECT disease_category FROM patient WHERE patient_id=?", (self.current_pid,)
+        ).fetchone()
+        return (row["disease_category"] if row and row["disease_category"] else "CAD_PCI")
+
     def _auto_fill(self):
         """从最新评估自动填充证型与分层。"""
         if self.current_pid is None:
@@ -197,15 +206,16 @@ class PrescriptionView(ttk.Frame):
             messagebox.showwarning("提示", "请选择证型与危险分层（可点『自动读取最新评估』）")
             return
         try:
+            dc = self._disease_category()
             rx = build_prescription(
-                self.conn, "CAD_PCI", pattern, risk,
+                self.conn, dc, pattern, risk,
                 phase=self.pvars["phase"].get() or "II",
                 week_no=_int(self.pvars["week_no"].get(), 1),
                 resting_hr=_float(self.pvars["resting_hr"].get()),
                 age=_int(self.pvars["age"].get()),
                 on_beta_blocker=self.beta_var.get(),
             )
-            safety = check_safety(self.conn, "CAD_PCI", pattern, risk)
+            safety = check_safety(self.conn, dc, pattern, risk)
             rx = apply_safety(rx, safety)
             rx["patient_id"] = self.current_pid
             self.current_rx = rx
@@ -295,9 +305,9 @@ class PrescriptionView(ttk.Frame):
         rx.setdefault("patient_id", self.current_pid)
         try:
             if rx.get("rx_id"):
-                update_row(self.conn, "prescription", {k: rx[k] for k in
-                         ("baduanjin_level", "aerobic_duration", "aerobic_freq", "rpe_min", "rpe_max")},
-                         "rx_id=?", (rx["rx_id"],))
+                # 全字段更新（排除主键与患者外键），医师调整的所有字段均持久化
+                upd = {k: v for k, v in rx.items() if k not in ("rx_id", "patient_id")}
+                update_row(self.conn, "prescription", upd, "rx_id=?", (rx["rx_id"],))
                 rid = rx["rx_id"]
             else:
                 rx["status"] = "草稿"

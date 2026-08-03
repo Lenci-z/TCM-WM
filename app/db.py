@@ -350,6 +350,12 @@ def table_columns(conn: sqlite3.Connection, table: str) -> list:
 
 # ---------- 种子数据导入 ----------
 
+def _pk_columns(conn: sqlite3.Connection, table: str) -> list:
+    """返回表的主键列名（PRAGMA table_info 的 pk 标记）。"""
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return [r["name"] for r in rows if r["pk"] > 0]
+
+
 def import_seed(db_path: str = DB_PATH, seed_dir: str = SEED_DIR) -> dict:
     """从 data/seed/*.json 导入种子数据到规则层表。
     约定：文件名 = 表名（如 rule_stratification.json）。幂等：先清空目标表再导入。
@@ -372,8 +378,9 @@ def import_seed(db_path: str = DB_PATH, seed_dir: str = SEED_DIR) -> dict:
             if not isinstance(rows, list) or not rows:
                 print(f"[seed] {table}: 空数据，跳过")
                 continue
-            cols = table_columns(conn, table)
-            cols = [c for c in cols if c != "id"]
+            # 排除主键列（P2-4：按 PRAGMA 识别真主键，而非字面量 "id"）
+            pk_cols = _pk_columns(conn, table)
+            cols = [c for c in table_columns(conn, table) if c not in pk_cols]
             placeholders = ",".join("?" * len(cols))
             colnames = ",".join(cols)
             conn.execute(f"DELETE FROM {table}")

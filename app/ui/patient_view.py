@@ -174,8 +174,11 @@ class PatientView(ttk.Frame):
         proc = self.conn.execute(
             "SELECT * FROM procedure WHERE patient_id=? ORDER BY procedure_id DESC LIMIT 1", (pid,)
         ).fetchone()
-        for key, var in self.pvars.items():
-            var.set("")
+        for var in self.pvars.values():
+            if isinstance(var, ttk.Combobox):
+                var.set("")
+            else:
+                var.delete(0, "end")
         if proc:
             self.pvars["proc_date"].insert(0, proc["proc_date"] or "")
             self.pvars["proc_type"].set(proc["proc_type"] or "")

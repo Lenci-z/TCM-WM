@@ -72,6 +72,9 @@ def _eval_condition(cond: dict, ctx: dict) -> bool:
         return any(not ctx.get(f"{item}_met", True) for item in cond.get("items", []))
     if op == "consecutive_missed":
         return (ctx.get("upload_gap_cycles") or 0) >= cond.get("count", 1)
+    if op == "consecutive_met":
+        # 连续达标激励：ctx[metric]（如 streak=连续达标天数）>= count 即触发
+        return (ctx.get(metric) or 0) >= cond.get("count", 1)
     if op == "days_before":
         due = ctx.get(metric)
         return due is not None and 0 <= due <= cond.get("value", 3)
