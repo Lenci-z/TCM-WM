@@ -1,0 +1,7 @@
+# Windows 批处理必须保持 CRLF 行尾（LF 会导致 cmd 解析错乱）
+*.bat text eol=crlf
+
+# 运行时生成物
+*.db binary
+*.db-wal binary
+*.db-shm binary
