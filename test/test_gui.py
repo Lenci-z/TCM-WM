@@ -257,6 +257,19 @@ class TestRbacGuard(unittest.TestCase):
             # 确认框（askyesno）不应被调用
             self.assertFalse(mb.askyesno.called)
 
+    def test_buttons_disabled(self):
+        """按钮显隐（P3-T3）：无权限角色关键按钮为 DISABLED。"""
+        from ui.patient_view import PatientView
+        from ui.prescription_view import PrescriptionView
+        from ui.rules_view import RulesView
+        pv = PatientView(self.root, self.app_stub)
+        self.assertEqual(str(pv.btn_delete.cget("state")), "disabled")
+        rx = PrescriptionView(self.root, self.app_stub)
+        self.assertEqual(str(rx.btn_sign.cget("state")), "disabled")
+        self.assertEqual(str(rx.btn_print.cget("state")), "disabled")
+        rv = RulesView(self.root, self.app_stub)
+        self.assertEqual(str(rv.btn_save_rule.cget("state")), "disabled")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

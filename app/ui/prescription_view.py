@@ -109,11 +109,14 @@ class PrescriptionView(ttk.Frame):
         ops = ttk.Frame(right)
         ops.pack(fill="x", pady=6)
         ttk.Button(ops, text="保存处方(草稿)", command=self._save_draft).pack(side="left", padx=4)
-        ttk.Button(ops, text="签发处方", command=self._sign).pack(side="left", padx=4)
-        ttk.Button(ops, text="打印 PDF", command=self._print_pdf).pack(side="left", padx=4)
+        self.btn_sign = ttk.Button(ops, text="签发处方", command=self._sign)
+        self.btn_sign.pack(side="left", padx=4)
+        self.btn_print = ttk.Button(ops, text="打印 PDF", command=self._print_pdf)
+        self.btn_print.pack(side="left", padx=4)
         self.saved_var = tk.StringVar(value="")
         tk.Label(ops, textvariable=self.saved_var, fg="green").pack(side="left", padx=10)
         self.refresh()
+        self._apply_permissions()
 
     # ---------- 数据 ----------
     def refresh(self):
@@ -177,6 +180,11 @@ class PrescriptionView(ttk.Frame):
         self.pattern_var["values"] = self._pattern_names()
         self.pattern_var.set(t or "")
         self.risk_var.set(r or "低危")
+
+    def _apply_permissions(self):
+        """RBAC 按钮显隐（P3-T3）：签发 prescription:sign、打印 pdf:export。"""
+        self.btn_sign.config(state=tk.NORMAL if self.app.check_perm("prescription:sign") else tk.DISABLED)
+        self.btn_print.config(state=tk.NORMAL if self.app.check_perm("pdf:export") else tk.DISABLED)
 
     # ---------- 生成 ----------
     def _generate(self):

@@ -49,11 +49,13 @@ class PatientView(ttk.Frame):
         btns.pack(fill="x", pady=6)
         ttk.Button(btns, text="新建", command=self._new).pack(side="left", padx=2)
         ttk.Button(btns, text="载入选中", command=self._load_form).pack(side="left", padx=2)
-        ttk.Button(btns, text="删除选中", command=self._delete).pack(side="left", padx=2)
+        self.btn_delete = ttk.Button(btns, text="删除选中", command=self._delete)
+        self.btn_delete.pack(side="left", padx=2)
 
         # ---- 右侧：建档表单 ----
         self._build_form(right)
         self.refresh()
+        self._apply_permissions()
 
     # ---------- 表单构建 ----------
     def _build_form(self, parent):
@@ -121,6 +123,11 @@ class PatientView(ttk.Frame):
         ttk.Button(ops, text="清空表单", command=self._new).pack(side="left", padx=6)
         self.saved_var = tk.StringVar(value="")
         tk.Label(ops, textvariable=self.saved_var, fg="green").pack(side="left", padx=10)
+
+    def _apply_permissions(self):
+        """RBAC 按钮显隐（P3-T3）：删除按钮仅 patient:delete 权限可用。"""
+        state = tk.NORMAL if self.app.check_perm("patient:delete") else tk.DISABLED
+        self.btn_delete.config(state=state)
 
     # ---------- 数据 ----------
     def _today(self):

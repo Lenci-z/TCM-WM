@@ -112,11 +112,13 @@ class RulesView(ttk.Frame):
         self.json_widgets = {}
         self.editor_container = ttk.Frame(editor)
         self.editor_container.pack(fill="both", expand=True)
-        ttk.Button(editor, text="保存修改（校验JSON）", command=self._save_edit).pack(pady=6)
+        self.btn_save_rule = ttk.Button(editor, text="保存修改（校验JSON）", command=self._save_edit)
+        self.btn_save_rule.pack(pady=6)
         self.edit_status = tk.StringVar(value="")
         tk.Label(editor, textvariable=self.edit_status, fg="green").pack(anchor="w")
 
         self.refresh()
+        self._apply_permissions()
 
     # ---------- 类型切换 ----------
     def _on_type_select(self, event):
@@ -235,6 +237,11 @@ class RulesView(ttk.Frame):
         self._load_table()
         self.edit_status.set("已保存，规则即时生效（重新生成处方可见变化）")
         self.app.set_status(f"规则已更新：{cfg['table']} #{self.current_pk}")
+
+    def _apply_permissions(self):
+        """RBAC 按钮显隐（P3-T3）：保存仅管理员（rules:edit）。"""
+        self.btn_save_rule.config(
+            state=tk.NORMAL if self.app.check_perm("rules:edit") else tk.DISABLED)
 
     def refresh(self):
         pass

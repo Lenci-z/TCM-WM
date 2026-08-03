@@ -100,6 +100,7 @@ class MainApp(tk.Tk):
             self._start_login()
         else:
             self._refresh_user_bar()
+        self._apply_permissions()
 
     # ---------- 认证（P3-T2） ----------
     def _start_login(self):
@@ -111,12 +112,24 @@ class MainApp(tk.Tk):
             LoginView(self, self.auth, mode="login", on_success=self._on_login_success)
 
     def _on_login_success(self, token: str) -> None:
-        """登录成功回调：保存 token + 刷新用户栏。"""
+        """登录成功回调：保存 token + 刷新用户栏 + 按角色应用权限。"""
         self.current_token = token
         self._refresh_user_bar()
+        self._apply_permissions()
         user = self.auth.get_current_user(token)
         if user:
             self.status_var.set(f"已登录：{user.get('display_name') or user.get('username')}（{user.get('role')}）")
+
+    def _apply_permissions(self):
+        """RBAC 界面显隐（P3-T3）：按钮 state + 规则库 Tab 隐藏（仅管理员）。"""
+        for view in (self.tab_patient, self.tab_assess, self.tab_rx,
+                     self.tab_followup, self.tab_rules):
+            fn = getattr(view, "_apply_permissions", None)
+            if callable(fn):
+                fn()
+        # 规则库 Tab：仅管理员可见（rules:edit）
+        can_edit_rules = self.check_perm("rules:edit")
+        self.notebook.tab(self.tab_rules, state="normal" if can_edit_rules else "hidden")
 
     def _refresh_user_bar(self):
         """标题栏右侧显示当前用户（未登录则提示）。"""
