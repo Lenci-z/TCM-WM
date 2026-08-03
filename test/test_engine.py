@@ -20,7 +20,7 @@ from engine.pattern import judge_pattern  # noqa: E402
 from engine.prescription import (matrix_code, build_prescription,  # noqa: E402
                                  progression_decision)
 from engine.safety import check_safety, apply_safety  # noqa: E402
-from engine.alerts import evaluate_alerts, close_alert  # noqa: E402
+from engine.alerts import evaluate_alerts  # noqa: E402
 from repo import Repository  # noqa: E402
 
 
@@ -40,6 +40,14 @@ class EngineTestBase(unittest.TestCase):
         """repo 预取模板 + 八段锦参数集（P2-T3 新签名）。"""
         return (self.repo.get_rx_template("CAD_PCI", matrix),
                 self.repo.get_baduanjin_cfg("CAD_PCI"))
+
+
+    def _safety(self, dc, pattern, risk):
+        return check_safety(self.repo.get_safety_rules(),
+                            self.repo.get_disease_contraindication(dc), dc, pattern, risk)
+
+    def _alerts(self, dc, pattern, risk, ctx):
+        return evaluate_alerts(self.repo.get_alert_rules(), dc, pattern, risk, ctx)
 
     @classmethod
     def tearDownClass(cls):
@@ -157,42 +165,41 @@ class TestPrescription(EngineTestBase):
 
 class TestSafety(EngineTestBase):
     def test_ganyang_block(self):
-        s = check_safety(self.conn, "CAD_PCI", "肝阳上亢", "低危")
+        s = self._safety("CAD_PCI", "肝阳上亢", "低危")
         actions = {b["action"] for b in s["blocked"]}
         self.assertIn("block_resistance", actions)
 
     def test_apply_disables_resistance(self):
         rx = build_prescription(*self._tpl("CAD_PCI-F1"), "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1)
-        s = check_safety(self.conn, "CAD_PCI", "肝阳上亢", "低危")
+        s = self._safety("CAD_PCI", "肝阳上亢", "低危")
         rx = apply_safety(rx, s)
         res = json.loads(rx["resistance_json"])
         self.assertFalse(res["enabled"])
 
     def test_cabg_window_rule_present(self):
-        s = check_safety(self.conn, "CAD_CABG", "气虚血瘀", "低危")
+        s = self._safety("CAD_CABG", "气虚血瘀", "低危")
         names = [b["name"] for b in s["blocked"]]
         self.assertTrue(any("胸骨" in n for n in names))
 
 
 class TestAlerts(EngineTestBase):
     def test_red_hr(self):
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危", {"resting_hr": 105})
+        trig = self._alerts("CAD_PCI", "气虚血瘀", "中危", {"resting_hr": 105})
         codes = [t["rule_code"] for t in trig]
         self.assertIn("ALERT-R-002", codes)
 
     def test_yellow_phq(self):
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危", {"phq9_or_gad7": 12})
+        trig = self._alerts("CAD_PCI", "气虚血瘀", "中危", {"phq9_or_gad7": 12})
         codes = [t["rule_code"] for t in trig]
         self.assertIn("ALERT-Y-005", codes)
 
     def test_blue_followup(self):
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危", {"followup_due": 2})
+        trig = self._alerts("CAD_PCI", "气虚血瘀", "中危", {"followup_due": 2})
         codes = [t["rule_code"] for t in trig]
         self.assertIn("ALERT-B-002", codes)
 
     def test_no_trigger_normal(self):
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危",
-                               {"resting_hr": 72, "phq9_or_gad7": 6, "followup_due": 9})
+        trig = self._alerts("CAD_PCI", "气虚血瘀", "中危", {"resting_hr": 72, "phq9_or_gad7": 6, "followup_due": 9})
         self.assertEqual(trig, [])
 
     def test_closure(self):
@@ -200,11 +207,12 @@ class TestAlerts(EngineTestBase):
             "INSERT INTO patient (name_enc, register_date) VALUES (?,?)",
             ("dGVzdA==", "2026-08-03")).lastrowid
         self.conn.commit()
-        evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危",
-                        {"resting_hr": 110}, patient_id=pid, persist=True)
+        trig = self._alerts("CAD_PCI", "气虚血瘀", "中危", {"resting_hr": 110})
+        for item in trig:
+            self.repo.insert_alert(pid, item)
         row = self.conn.execute("SELECT alert_id FROM alert WHERE patient_id=?", (pid,)).fetchone()
         self.assertIsNotNone(row)
-        close_alert(self.conn, row["alert_id"], "测试医师", "处置完成")
+        self.repo.close_alert(row["alert_id"], "测试医师", "处置完成")
         closed = self.conn.execute("SELECT status FROM alert WHERE alert_id=?", (row["alert_id"],)).fetchone()
         self.assertEqual(closed["status"], "已关闭")
         # 清理

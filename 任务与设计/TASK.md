@@ -158,7 +158,10 @@
 - **验收**：52 测试 0 FAIL ✓
 
 ### 5.3 P2-T3 prescription.py 解耦
-- [ ] `build_prescription(template, baduanjin_cfg, ...)` 移除 conn
+- [x] `build_prescription(template, baduanjin_cfg, ...)` 移除 conn（2026-08-03）
+- [x] 模板/八段锦参数集经 repo 读取；GUI/测试/自测块全部适配（2026-08-03）
+- [x] 旧 load_template/load_baduanjin_cfg 保留标注为兼容（2026-08-03）
+- **验收**：52 测试 0 FAIL ✓
 
 ### 5.4 P2-T4 safety.py + alerts.py + pdf_export.py 解耦
 - [ ] `check_safety(safety_rules, disease_contra, ...)`、`evaluate_alerts(alert_rules, ...)`、`export_rx_pdf(patient_info, ...)` 移除 conn；持久化函数移 repo

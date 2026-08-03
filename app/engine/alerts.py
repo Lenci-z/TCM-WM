@@ -1,25 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-预警引擎（2.6）
+预警引擎（2.6）— 纯领域逻辑（P2-T4 解耦后不接 conn）
 依据：设计方案 v0.2 第 2.8 节（预警规则与处置闭环）+ 3.4 节（预警规则表 JSON 结构）
-流程：触发 → 分级 → 通知对象 → 处置 → 记录 → 关闭，全程留痕
-规则：rule_alert 表（condition_json / applicable_json / actions_json）
+流程：触发 → 分级 → 通知对象；持久化由调用方经 repo.insert_alert() 完成
+规则：rule_alert（由 repo.get_alert_rules() 提供，condition/applicable/actions 已解析）
 """
 import json
-from datetime import datetime
-
-
-def load_alert_rules(conn):
-    rows = conn.execute(
-        "SELECT rule_code, level, name, condition_json, applicable_json, actions_json "
-        "FROM rule_alert WHERE enabled=1"
-    ).fetchall()
-    return rows
 
 
 def _applicable(rule, disease_category, pattern, risk_level) -> bool:
     """适用范围过滤（病种/证型/分层，* 通配；列表含 * 视为全匹配）。"""
-    app = json.loads(rule["applicable_json"] or "{}")
+    app = rule.get("applicable", {}) or {}
     for key, val in [("disease_category", disease_category),
                      ("pattern", pattern),
                      ("risk_level", risk_level)]:
@@ -93,20 +84,23 @@ def _notify_target(actions: list) -> str:
     return "+".join(targets) if targets else "记录"
 
 
-def evaluate_alerts(conn, disease_category: str, pattern: str, risk_level: str,
-                    ctx: dict, patient_id: int = None, persist: bool = False):
-    """评估全部启用的预警规则，返回触发列表。
-    persist=True 时写入 alert 表（全程留痕）。
+def evaluate_alerts(alert_rules: list, disease_category: str, pattern: str,
+                    risk_level: str, ctx: dict):
+    """评估全部启用的预警规则，返回触发列表。纯逻辑，无 conn（P2-T4）。
+    参数：
+      alert_rules: 预警规则列表（由 repo.get_alert_rules() 获取，
+                    元素含 rule_code/level/name/condition/applicable/actions）
+      ctx: 预警上下文 dict
     返回 [ {rule_code, level, name, trigger_data, notify_target} ... ]
+    注意：不持久化。持久化由调用方经 repo.insert_alert() 完成。
     """
     triggered = []
-    rules = load_alert_rules(conn)
-    for rule in rules:
+    for rule in alert_rules:
         if not _applicable(rule, disease_category, pattern, risk_level):
             continue
-        cond = json.loads(rule["condition_json"])
+        cond = rule.get("condition", {})
         if _eval_condition(cond, ctx):
-            actions = json.loads(rule["actions_json"] or "[]")
+            actions = rule.get("actions", []) or []
             item = {
                 "rule_code": rule["rule_code"],
                 "level": rule["level"],
@@ -115,40 +109,9 @@ def evaluate_alerts(conn, disease_category: str, pattern: str, risk_level: str,
                 "notify_target": _notify_target(actions),
             }
             triggered.append(item)
-            if persist and patient_id is not None:
-                insert_alert(conn, patient_id, item)
     return triggered
 
 
-def insert_alert(conn, patient_id: int, item: dict) -> int:
-    """写入预警记录（状态=待处置）。"""
-    return conn.execute(
-        "INSERT INTO alert (patient_id, trigger_time, level, rule_code, trigger_data_json, "
-        "notify_target, status) VALUES (?,?,?,?,?,?,'待处置')",
-        (patient_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-         item["level"], item["rule_code"], item["trigger_data"], item["notify_target"]),
-    ).lastrowid
-
-
-def pending_alerts(conn, level: str = None):
-    """待处置预警列表（GUI 工作台用）。"""
-    sql = "SELECT * FROM alert WHERE status IN ('待处置','处置中')"
-    params = []
-    if level:
-        sql += " AND level=?"
-        params.append(level)
-    sql += " ORDER BY trigger_time DESC"
-    return conn.execute(sql, params).fetchall()
-
-
-def close_alert(conn, alert_id: int, handler: str, handle_content: str) -> None:
-    """处置并关闭预警（闭环留痕）。"""
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn.execute(
-        "UPDATE alert SET handler=?, handle_time=?, handle_content=?, status='已关闭' WHERE alert_id=?",
-        (handler, now, handle_content, alert_id),
-    )
-    conn.commit()
 
 
 if __name__ == "__main__":
@@ -156,8 +119,11 @@ if __name__ == "__main__":
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from db import get_conn
+    from repo import Repository
 
     conn = get_conn()
+    repo = Repository(conn)
+    alert_rules = repo.get_alert_rules()
     print("=== 2.6 预警引擎 ===")
     cases = [
         ("红色·心率105", {"resting_hr": 105}),
@@ -170,29 +136,27 @@ if __name__ == "__main__":
                             "phq9_or_gad7": 6, "completion_rate": 80.0, "followup_due": 9}),
     ]
     for name, ctx in cases:
-        trig = evaluate_alerts(conn, "CAD_PCI", "气虚血瘀", "中危", ctx)
+        trig = evaluate_alerts(alert_rules, "CAD_PCI", "气虚血瘀", "中危", ctx)
         if trig:
             for t in trig:
                 print(f"  {name} → [{t['level']}] {t['name']} | 通知: {t['notify_target']}")
         else:
             print(f"  {name} → 无触发")
 
-    print("\n=== 闭环留痕测试 ===")
+    print()
+    print("=== 闭环留痕（repo 持久化） ===")
     # 先建测试患者（外键要求）
-    pid = conn.execute(
-        "INSERT INTO patient (name_enc, register_date, disease_category) VALUES (?,?,?)",
-        ("dGVzdA==", "2026-08-03", "CAD_PCI"),
-    ).lastrowid
-    conn.commit()
+    pid = repo.insert_patient({"name": "预警测试", "gender": "男", "birth_date": "1960-01-01",
+                               "contact": "13800138000", "register_date": "2026-08-03",
+                               "disease_category": "CAD_PCI"})
     ctx = {"resting_hr": 108}
-    trig = evaluate_alerts(conn, "CAD_PCI", "气虚血瘀", "中危", ctx, patient_id=pid, persist=True)
+    trig = evaluate_alerts(alert_rules, "CAD_PCI", "气虚血瘀", "中危", ctx)
     aid = None
-    rows = conn.execute("SELECT alert_id, level, rule_code, status FROM alert ORDER BY alert_id DESC LIMIT 1").fetchall()
-    if rows:
-        aid = rows[0]["alert_id"]
-        print(f"  已写入: alert_id={aid} [{rows[0]['level']}] {rows[0]['rule_code']} 状态={rows[0]['status']}")
+    for item in trig:
+        aid = repo.insert_alert(pid, item)
+        print(f"  已写入: alert_id={aid} [{item['level']}] {item['rule_code']} 状态=待处置")
     if aid:
-        close_alert(conn, aid, "测试医师", "已电话联系患者，心率复测正常")
-        r = conn.execute("SELECT status, handler, handle_content FROM alert WHERE alert_id=?", (aid,)).fetchone()
+        repo.close_alert(aid, "测试医师", "已电话联系患者，心率复测正常")
+        r = repo.query_one("SELECT status, handler, handle_content FROM alert WHERE alert_id=?", (aid,))
         print(f"  已关闭: 状态={r['status']} 处置人={r['handler']} 内容={r['handle_content']}")
     conn.close()

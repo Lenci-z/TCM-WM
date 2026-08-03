@@ -93,7 +93,9 @@ class TestE2EFlow(unittest.TestCase):
                             "CAD_PCI", "痰浊闭阻", "中危", phase="II", week_no=2,
                                 resting_hr=68, age=68, on_beta_blocker=False)
         self.assertEqual(rx["matrix_code"], "CAD_PCI-B2")
-        safety = check_safety(conn, "CAD_PCI", "痰浊闭阻", "中危")
+        safety = check_safety(self.repo.get_safety_rules(),
+                              self.repo.get_disease_contraindication("CAD_PCI"),
+                              "CAD_PCI", "痰浊闭阻", "中危")
         rx = apply_safety(rx, safety)
         rx["patient_id"] = pid
         rx["status"] = "草稿"
@@ -111,7 +113,7 @@ class TestE2EFlow(unittest.TestCase):
 
         # 4. PDF 导出
         rx_row = dict(conn.execute("SELECT * FROM prescription WHERE rx_id=?", (rid,)).fetchone())
-        export_rx_pdf(conn, rx_row, TEST_PDF)
+        export_rx_pdf(self.repo.get_patient_for_pdf(rx_row["patient_id"]), rx_row, TEST_PDF)
         self.assertTrue(os.path.exists(TEST_PDF))
         self.assertGreater(os.path.getsize(TEST_PDF), 10000)
 
@@ -137,11 +139,13 @@ class TestE2EFlow(unittest.TestCase):
             "SELECT status FROM follow_up WHERE fu_type='1周' AND patient_id=?", (pid,)).fetchone()
         self.assertEqual(done["status"], "已完成")
 
-        # 6. 预警联动（复评数据 → 黄色预警触发并留痕）
-        trig2 = evaluate_alerts(conn, "CAD_PCI", "痰浊闭阻", "中危",
-                                {"completion_rate": 45.0}, patient_id=pid, persist=True)
+        # 6. 预警联动（复评数据 → 黄色预警触发并留痕，repo 显式持久化）
+        trig2 = evaluate_alerts(self.repo.get_alert_rules(), "CAD_PCI", "痰浊闭阻", "中危",
+                                {"completion_rate": 45.0})
         codes = [t["rule_code"] for t in trig2]
         self.assertIn("ALERT-Y-006", codes)
+        for item in trig2:
+            self.repo.insert_alert(pid, item)
         alert = conn.execute(
             "SELECT level, status FROM alert WHERE patient_id=? ORDER BY alert_id DESC LIMIT 1",
             (pid,)).fetchone()

@@ -221,7 +221,9 @@ class PrescriptionView(ttk.Frame):
                 age=_int(self.pvars["age"].get()),
                 on_beta_blocker=self.beta_var.get(),
             )
-            safety = check_safety(self.conn, dc, pattern, risk)
+            safety = check_safety(self.app.repo.get_safety_rules(),
+                                  self.app.repo.get_disease_contraindication(dc),
+                                  dc, pattern, risk)
             rx = apply_safety(rx, safety)
             rx["patient_id"] = self.current_pid
             self.current_rx = rx
@@ -364,7 +366,7 @@ class PrescriptionView(ttk.Frame):
         if not out:
             return
         try:
-            path = export_rx_pdf(self.conn, rx, out)
+            path = export_rx_pdf(self.app.repo.get_patient_for_pdf(rx["patient_id"]), rx, out)
             self.saved_var.set(f"已导出：{path}")
             messagebox.showinfo("导出成功", f"处方 PDF 已保存：\n{path}")
         except Exception as e:

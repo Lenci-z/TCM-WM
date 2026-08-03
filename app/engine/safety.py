@@ -15,8 +15,13 @@ def _match(value, rule_value) -> bool:
     return rule_value in ("*", value)
 
 
-def check_safety(conn, disease_category: str, pattern: str, risk_level: str):
-    """执行安全校验。
+def check_safety(safety_rules: list, disease_contra: dict,
+                 disease_category: str, pattern: str, risk_level: str):
+    """执行安全校验。纯逻辑，无 conn（P2-T4）。
+    参数：
+      safety_rules: 禁忌规则列表（由 repo.get_safety_rules() 获取，
+                     元素含 disease_category/pattern/risk_level/name/rule）
+      disease_contra: 病种特异禁忌 dict（由 repo.get_disease_contraindication() 获取，含 items）
     返回 {'blocked': [...], 'warnings': [...]}：
       blocked   — 硬性禁忌（如禁高强度抗阻），处方必须处理
       warnings  — 提示性限制（如监测症状、控制体重）
@@ -24,36 +29,27 @@ def check_safety(conn, disease_category: str, pattern: str, risk_level: str):
     blocked, warnings = [], []
 
     # 1. 规则表（通用 + 证型级 + 病种级）
-    rows = conn.execute(
-        "SELECT disease_category, pattern, risk_level, name, rule_json FROM rule_contraindication "
-        "WHERE enabled=1"
-    ).fetchall()
-    for r in rows:
-        if not (_match(disease_category, r["disease_category"])
-                and _match(pattern, r["pattern"])
-                and _match(risk_level, r["risk_level"])):
+    for r in safety_rules:
+        if not (_match(disease_category, r.get("disease_category"))
+                and _match(pattern, r.get("pattern"))
+                and _match(risk_level, r.get("risk_level"))):
             continue
-        rule = json.loads(r["rule_json"])
-        item = {"name": r["name"], "detail": rule.get("detail", ""), "action": rule.get("action", "")}
+        rule = r.get("rule", {})
+        item = {"name": r.get("name", ""), "detail": rule.get("detail", ""),
+                "action": rule.get("action", "")}
         if rule.get("level") == "block":
             blocked.append(item)
         else:
             warnings.append(item)
 
     # 2. 病种特异禁忌（disease_config.contraindication_json）
-    row = conn.execute(
-        "SELECT contraindication_json FROM disease_config WHERE disease_category=?",
-        (disease_category,),
-    ).fetchone()
-    if row and row["contraindication_json"]:
-        cfg = json.loads(row["contraindication_json"])
-        for item in cfg.get("items", []):
-            entry = {"name": item.get("name", ""), "detail": item.get("rule", ""),
-                     "window": item.get("window", "")}
-            if item.get("level") == "block":
-                blocked.append(entry)
-            else:
-                warnings.append(entry)
+    for item in (disease_contra or {}).get("items", []):
+        entry = {"name": item.get("name", ""), "detail": item.get("rule", ""),
+                 "window": item.get("window", "")}
+        if item.get("level") == "block":
+            blocked.append(entry)
+        else:
+            warnings.append(entry)
 
     return {"blocked": blocked, "warnings": warnings}
 
@@ -93,7 +89,9 @@ if __name__ == "__main__":
     repo = Repository(conn)
     print("=== 2.5 安全校验 ===")
     for pattern, risk in [("肝阳上亢", "低危"), ("气虚血瘀", "中危"), ("阳虚水泛", "高危")]:
-        s = check_safety(conn, "CAD_PCI", pattern, risk)
+        s = check_safety(repo.get_safety_rules(),
+                    repo.get_disease_contraindication("CAD_PCI"),
+                    "CAD_PCI", pattern, risk)
         print(f"{pattern}/{risk}: block={len(s['blocked'])} warning={len(s['warnings'])}")
         for b in s["blocked"]:
             print(f"    ⛔ {b['name']}: {b['detail']}")
@@ -105,7 +103,9 @@ if __name__ == "__main__":
                             repo.get_baduanjin_cfg("CAD_PCI"),
                             "CAD_PCI", "肝阳上亢", "低危", phase="II", week_no=1,
                             resting_hr=65, age=60)
-    s = check_safety(conn, "CAD_PCI", "肝阳上亢", "低危")
+    s = check_safety(repo.get_safety_rules(),
+                    repo.get_disease_contraindication("CAD_PCI"),
+                    "CAD_PCI", "肝阳上亢", "低危")
     rx = apply_safety(rx, s)
     res = json.loads(rx["resistance_json"])
     print(f"  抗阻 enabled={res['enabled']} | 应用标注: {rx['safety'].get('applied')}")

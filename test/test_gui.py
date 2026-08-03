@@ -176,12 +176,12 @@ class TestP1_2Sign(GuiTestBase):
 class TestP1_4ConsecutiveMet(GuiTestBase):
     def test_blue_incentive_triggers(self):
         """P1-4 回归：consecutive_met 操作符实现，蓝色激励可触发。"""
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危", {"streak": 3})
+        trig = evaluate_alerts(self.repo.get_alert_rules(), "CAD_PCI", "气虚血瘀", "中危", {"streak": 3})
         codes = [t["rule_code"] for t in trig]
         self.assertIn("ALERT-B-001", codes)
 
     def test_blue_not_trigger_below_count(self):
-        trig = evaluate_alerts(self.conn, "CAD_PCI", "气虚血瘀", "中危", {"streak": 0})
+        trig = evaluate_alerts(self.repo.get_alert_rules(), "CAD_PCI", "气虚血瘀", "中危", {"streak": 0})
         self.assertNotIn("ALERT-B-001", [t["rule_code"] for t in trig])
 
 

@@ -15,8 +15,6 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 
-from db import decrypt_text
-
 # ---------- 中文字体注册 ----------
 _FONT_CANDIDATES = [
     ("MSYH", r"C:\Windows\Fonts\msyh.ttc"),
@@ -36,8 +34,12 @@ def _register_font():
     return "Helvetica"  # 无中文字体时兜底
 
 
-def export_rx_pdf(conn, rx: dict, out_path: str) -> str:
-    """导出处方单 PDF。rx 为 prescription 表行（dict）。"""
+def export_rx_pdf(patient_info: dict, rx: dict, out_path: str) -> str:
+    """导出处方单 PDF。纯逻辑，无 conn（P2-T4）。
+    参数：
+      patient_info: {'name', 'gender', 'birth_date'}（由 repo.get_patient_for_pdf() 获取）
+      rx: prescription 表行（dict）
+    """
     font = _register_font()
     title_st = ParagraphStyle("title", fontName=font, fontSize=16, leading=22,
                               alignment=1, textColor=colors.HexColor("#8B2F2F"))
@@ -47,11 +49,9 @@ def export_rx_pdf(conn, rx: dict, out_path: str) -> str:
     body_st = ParagraphStyle("body", fontName=font, fontSize=10, leading=15, leftIndent=8)
     foot_st = ParagraphStyle("foot", fontName=font, fontSize=10, leading=15)
 
-    p = conn.execute("SELECT name_enc, gender, birth_date FROM patient WHERE patient_id=?",
-                     (rx["patient_id"],)).fetchone()
-    name = decrypt_text(p["name_enc"]) if p else ""
-    gender = p["gender"] if p else ""
-    birth = p["birth_date"] if p else ""
+    name = (patient_info or {}).get("name", "")
+    gender = (patient_info or {}).get("gender", "")
+    birth = (patient_info or {}).get("birth_date", "")
 
     tcm = json.loads(rx.get("tcm_json") or "{}")
     res = json.loads(rx.get("resistance_json") or "{}")
@@ -135,6 +135,6 @@ if __name__ == "__main__":
     else:
         out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                            "data", "_test_rx.pdf")
-        export_rx_pdf(conn, dict(rx), out)
+        export_rx_pdf(repo.get_patient_for_pdf(rx["patient_id"]), dict(rx), out)
         print("PDF 生成:", out, os.path.getsize(out), "bytes")
     conn.close()
