@@ -107,6 +107,9 @@ class AssessmentView(ttk.Frame):
         canvas.configure(yscrollcommand=sb.set)
         canvas.pack(side="left", fill="both", expand=True)
         sb.pack(side="right", fill="y")
+        # 保险：canvas 首次映射（打开）时强制同步表单宽度，防初始 requested 尺寸问题
+        canvas.bind("<Map>",
+                    lambda e: canvas.itemconfigure(_win_id, width=canvas.winfo_width()))
 
         self._build_form()
         self.refresh()
@@ -116,42 +119,48 @@ class AssessmentView(ttk.Frame):
         # 评估头
         head = ttk.LabelFrame(self.form, text="评估头", padding=8)
         head.pack(fill="x", pady=4)
+        head.columnconfigure(1, weight=1)  # 输入列伸展，防窗口窄时右缘裁剪
+        head.columnconfigure(3, weight=1)
         self.head_var = {}
         ttk.Label(head, text="评估类型").grid(row=0, column=0, sticky="e", padx=4)
         self.head_var["type"] = ttk.Combobox(head, values=self.ASSESS_TYPES, state="readonly", width=12)
-        self.head_var["type"].grid(row=0, column=1, sticky="w", padx=4)
+        self.head_var["type"].grid(row=0, column=1, sticky="we", padx=4)
         ttk.Label(head, text="评估日期").grid(row=0, column=2, sticky="e", padx=4)
         self.head_var["date"] = ttk.Entry(head, width=14)
-        self.head_var["date"].grid(row=0, column=3, sticky="w", padx=4)
+        self.head_var["date"].grid(row=0, column=3, sticky="we", padx=4)
         self.head_var["date"].insert(0, date.today().isoformat())
         self.head_var["type"].set("基线")
         tk.Label(head, textvariable=self.saved_var, fg="green").grid(row=0, column=4, padx=8)
 
-        # 各分组字段
+        # 各分组字段（3 列弹性布局：输入列伸展，任何窗口宽度内容完整）
         for group, fields in self.FIELD_GROUPS:
             frm = ttk.LabelFrame(self.form, text=group, padding=8)
             frm.pack(fill="x", pady=4)
+            for c in range(3):
+                frm.columnconfigure(c * 2 + 1, weight=1)
             for i, (key, label, typ) in enumerate(fields):
                 r, c = divmod(i, 3)
                 ttk.Label(frm, text=label).grid(row=r, column=c * 2, sticky="e", padx=4, pady=3)
                 if typ == "c":
                     var = ttk.Combobox(frm, values=self.COMBO_VALUES.get(key, []), state="readonly", width=16)
-                    var.grid(row=r, column=c * 2 + 1, sticky="w", padx=4, pady=3)
+                    var.grid(row=r, column=c * 2 + 1, sticky="we", padx=4, pady=3)
                 else:
                     var = ttk.Entry(frm, width=18)
-                    var.grid(row=r, column=c * 2 + 1, sticky="w", padx=4, pady=3)
+                    var.grid(row=r, column=c * 2 + 1, sticky="we", padx=4, pady=3)
                 self.vars[key] = var
 
         # 舌象图片
         tongue = ttk.LabelFrame(self.form, text="舌象图片", padding=8)
         tongue.pack(fill="x", pady=4)
         self.tongue_var = ttk.Entry(tongue, width=50)
-        self.tongue_var.pack(side="left", padx=4)
+        self.tongue_var.pack(side="left", fill="x", expand=True, padx=4)
         ttk.Button(tongue, text="浏览…", command=self._browse_tongue).pack(side="left")
 
         # 分层判定输入（选查）
         strat = ttk.LabelFrame(self.form, text="危险分层判定输入（选查，用于自动分层）", padding=8)
         strat.pack(fill="x", pady=4)
+        for c in range(3):
+            strat.columnconfigure(c * 2 + 1, weight=1)
         self.svars = {}
         sfields = [
             ("exercise_test", "运动试验结论", ["未做", "无缺血", "有缺血"]),
@@ -166,7 +175,7 @@ class AssessmentView(ttk.Frame):
             ttk.Label(strat, text=label).grid(row=r, column=c * 2, sticky="e", padx=4, pady=3)
             var = ttk.Combobox(strat, values=values, state="readonly", width=14)
             var.set("未做" if "未做" in values else "否")
-            var.grid(row=r, column=c * 2 + 1, sticky="w", padx=4, pady=3)
+            var.grid(row=r, column=c * 2 + 1, sticky="we", padx=4, pady=3)
             self.svars[key] = var
 
         # 四诊问卷（自动生成自规则库）
