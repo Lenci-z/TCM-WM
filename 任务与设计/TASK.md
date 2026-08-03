@@ -140,4 +140,31 @@
 
 ---
 
+## 阶段5 引擎-数据解耦（P2，依据 docs/分阶段开发设计与任务列表.md）
+
+> 目标：引擎层与 DB 解耦（Repository 模式），为扩大使用打地基。P2-T1 已完成，T2-T5 待执行。
+
+### 5.1 P2-T1 Repository 层创建
+- [x] `app/repo.py` 新增：50 方法集中全部数据访问 + 加密/解密透明处理（2026-08-03）
+- [x] `app/ui/main.py` 初始化 `self.repo`（+2 行，视图仍用 conn——T5 才改）
+- [x] `test/test_repo.py` 新增：19 用例（规则读取8/患者CRUD4/手术1/综合6）
+- [x] 验收：8 项标准全过（50方法/19测试绿/33旧测试绿/加密透明/MainApp.repo/引擎GUI db未改）
+- **验收**：Repository 层就位，52 测试 0 FAIL ✓（引擎/GUI/db.py 零改动）
+
+### 5.2 P2-T2 stratification.py + pattern.py 解耦
+- [ ] 引擎函数移除 conn：`stratify(strat_config, clinical)`、`judge_pattern(patterns, selected)`
+- [ ] 规则加载改由调用方经 repo 完成；每步跑全量测试
+
+### 5.3 P2-T3 prescription.py 解耦
+- [ ] `build_prescription(template, baduanjin_cfg, ...)` 移除 conn
+
+### 5.4 P2-T4 safety.py + alerts.py + pdf_export.py 解耦
+- [ ] `check_safety(safety_rules, disease_contra, ...)`、`evaluate_alerts(alert_rules, ...)`、`export_rx_pdf(patient_info, ...)` 移除 conn；持久化函数移 repo
+
+### 5.5 P2-T5 GUI 全量适配 + 测试拆分 + DB 健壮性
+- [ ] 6 视图 `self.conn` → `self.repo`；引擎调用改传 data
+- [ ] 测试拆分：`test_engine_pure.py`（纯逻辑无 DB）+ 集成测试
+- [ ] DB 健壮性（锁/重试）
+
+---
 *状态记录：每完成一项将 - [ ] 改为 - [x] 并记录日期。*

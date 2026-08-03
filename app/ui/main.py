@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import DB_PATH, get_conn, init_db, import_seed, SEED_DIR
 from log import setup_logging, get_logger
+from repo import Repository
 
 _logger = get_logger("main")
 
@@ -98,6 +99,7 @@ class MainApp(tk.Tk):
         if not has_rules:
             import_seed()
         self.conn = get_conn()
+        self.repo = Repository(self.conn)
 
     # ---------- 事件 ----------
     def _on_tab_change(self, event):
