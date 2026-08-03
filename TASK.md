@@ -22,8 +22,8 @@
 - [x] 按设计文档 3.3 节建全部表：`patient`、`procedure`、`assessment`、`tcm_pattern`、`risk_stratification`、`prescription`、`adherence_log`、`vital_upload`、`alert`、`follow_up`、`clinical_event`（2026-08-03）
 - [x] 全表含 `disease_category` 字段；`procedure` 含切口类型、抗凝状态；`assessment` 含代谢全套（LDL-C/HbA1c/尿酸/eGFR/UACR）（2026-08-03）
 - [x] 姓名、联系方式加密存储（MVP 用标准库可逆加密，正式版对接医院方案）（2026-08-03）
-- [x] 规则层 6 表同步建齐：分层阈值/证型特征/处方模板/八段锦/预警/禁忌（2026-08-03）
-- **验收**：建库脚本可重复执行；表结构字段与文档 3.3 一致 ✓（自测通过，19 表）
+- [x] 规则层 5 表同步建齐：证型特征/处方模板/八段锦/预警/禁忌（分层阈值归病种参数集）（2026-08-03）
+- **验收**：建库脚本可重复执行；表结构字段与文档 3.3 一致 ✓（自测通过，17 表）
 
 ### 1.2 disease_config 参数集表
 - [x] 建 `disease_config` 表；写入 7 个病种条目（CAD_PCI 启用，其余 6 个预留不启用）（2026-08-03）
