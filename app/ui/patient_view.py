@@ -30,10 +30,10 @@ class PatientView(ttk.Frame):
 
         # ---- 左侧：患者列表 ----
         ttk.Label(left, text="患者列表", font=("微软雅黑", 11, "bold")).pack(anchor="w")
-        cols = ("id", "name", "gender", "birth", "disease", "status", "physician")
+        cols = ("medno", "id", "name", "gender", "birth", "disease", "status", "physician")
         self.tree = ttk.Treeview(left, columns=cols, show="headings", height=24)
-        headers = {"id": ("ID", 50), "name": ("姓名", 90), "gender": ("性别", 50),
-                   "birth": ("出生日期", 90), "disease": ("病种", 100),
+        headers = {"medno": ("病历号", 110), "id": ("ID", 50), "name": ("姓名", 90),
+                   "gender": ("性别", 50), "birth": ("出生日期", 90), "disease": ("病种", 100),
                    "status": ("状态", 70), "physician": ("责任医师", 90)}
         for c, (t, w) in headers.items():
             self.tree.heading(c, text=t)
@@ -87,6 +87,11 @@ class PatientView(ttk.Frame):
         self.vars["status"]["values"] = ["建档", "在组", "随访中", "完成", "失访", "退出"]
         self.vars["disease_category"]["values"] = self._enabled_diseases()
         self.vars["register_date"].insert(0, tk.StringVar(value="").get() or self._today())
+        # 病历号（只读展示：自动生成 CR-年份-4位序号，保存建档后可见）
+        self.var_medno = tk.StringVar(value="病历号：保存建档后自动生成")
+        ttk.Label(base, text="病历号").grid(row=3, column=0, sticky="e", padx=4, pady=3)
+        ttk.Label(base, textvariable=self.var_medno, foreground="#555").grid(
+            row=3, column=1, sticky="w", padx=4, pady=3)
 
         # 手术信息
         proc = ttk.LabelFrame(frm, text="手术信息（procedure）", padding=8)
@@ -144,7 +149,7 @@ class PatientView(ttk.Frame):
         if not patients:
             messagebox.showinfo("无数据", "当前没有患者记录可导出")
             return
-        headers = ["patient_id", "name", "gender", "birth_date", "disease_category",
+        headers = ["medical_no", "patient_id", "name", "gender", "birth_date", "disease_category",
                    "register_date", "status", "contact", "inpatient_no"]
         n = export_csv(path, headers, patient_csv_rows(patients))
         _logger.info("导出患者 CSV: %s (%d 条)", path, n)
@@ -164,7 +169,7 @@ class PatientView(ttk.Frame):
             self.tree.delete(item)
         for p in self.app.repo.list_patients():
             self.tree.insert("", "end", iid=str(p["patient_id"]), values=(
-                p["patient_id"], p["name"], p["gender"] or "",
+                p["medical_no"] or "", p["patient_id"], p["name"], p["gender"] or "",
                 p["birth_date"] or "", p["disease_category"], p["status"], p["physician"] or ""))
 
     def _on_select(self, event):
@@ -182,6 +187,7 @@ class PatientView(ttk.Frame):
         if not p:
             return
         self.current_pid = pid
+        self.var_medno.set(f"病历号：{p['medical_no'] or '（未分配）'}")
         self.vars["name"].delete(0, "end"); self.vars["name"].insert(0, p["name"] or "")
         self.vars["gender"].set(p["gender"] or "")
         self.vars["birth_date"].delete(0, "end"); self.vars["birth_date"].insert(0, p["birth_date"] or "")
@@ -213,6 +219,7 @@ class PatientView(ttk.Frame):
     def _new(self):
         """新建：清空表单。"""
         self.current_pid = None
+        self.var_medno.set("病历号：保存建档后自动生成")
         for var in self.vars.values():
             if isinstance(var, ttk.Combobox):
                 var.set("")

@@ -337,5 +337,54 @@ class TestRepoAssessmentAndAlert(unittest.TestCase):
         self.assertIn("birth_date", info)
 
 
+class TestPatientMedicalNo(unittest.TestCase):
+    """病历号自动生成（2026-08-03，MIGRATIONS v3）：
+    格式 CR-年份-4位序号、从 0001 连续、唯一不复用、删除不回退。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.db_fd, cls.db_path = tempfile.mkstemp(suffix=".db")
+        db.init_db(cls.db_path)
+        db.import_seed(cls.db_path)
+        cls.conn = db.get_conn(cls.db_path)
+        cls.repo = Repository(cls.conn)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.conn.close()
+        os.close(cls.db_fd)
+        os.unlink(cls.db_path)
+
+    def test_auto_generate_format_unique_increment(self):
+        """连续建档：病历号格式正确、唯一、序号连续递增。"""
+        import re
+        pid1 = self.repo.insert_patient({"name": "编号测试甲", "gender": "女", "register_date": "2026-08-03"})
+        pid2 = self.repo.insert_patient({"name": "编号测试乙", "register_date": "2026-08-03"})
+        pid3 = self.repo.insert_patient({"name": "编号测试丙", "register_date": "2026-08-03"})
+        nos = [self.repo.get_patient(p)["medical_no"] for p in (pid1, pid2, pid3)]
+        for no in nos:
+            self.assertRegex(no, r"^CR-\d{4}-\d{4}$")
+        self.assertEqual(len(set(nos)), 3, "病历号必须唯一")
+        seqs = [int(no[-4:]) for no in nos]
+        self.assertEqual(seqs[1], seqs[0] + 1)
+        self.assertEqual(seqs[2], seqs[1] + 1)
+
+    def test_medical_no_kept_on_update(self):
+        """更新患者不改变病历号。"""
+        pid = self.repo.insert_patient({"name": "编号测试丁", "register_date": "2026-08-03"})
+        no_before = self.repo.get_patient(pid)["medical_no"]
+        self.repo.update_patient(pid, {"gender": "男"})
+        self.assertEqual(self.repo.get_patient(pid)["medical_no"], no_before)
+
+    def test_medical_no_not_reused_after_delete(self):
+        """删除患者后病历号不回退（计数器持久化）。"""
+        pid1 = self.repo.insert_patient({"name": "编号测试戊", "register_date": "2026-08-03"})
+        no1 = self.repo.get_patient(pid1)["medical_no"]
+        self.repo.delete_patient(pid1)  # 无业务记录，可删
+        pid2 = self.repo.insert_patient({"name": "编号测试己", "register_date": "2026-08-03"})
+        no2 = self.repo.get_patient(pid2)["medical_no"]
+        self.assertEqual(int(no2[-4:]), int(no1[-4:]) + 1, "病历号不复用")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -183,7 +183,7 @@ class Repository:
         对应旧 GUI 代码：patient_view.refresh 中的 SQL + decrypt_text
         """
         rows = self.conn.execute(
-            "SELECT patient_id, name_enc, gender, birth_date, contact_enc, "
+            "SELECT patient_id, medical_no, name_enc, gender, birth_date, contact_enc, "
             "inpatient_no, register_date, physician, status, disease_category "
             "FROM patient ORDER BY register_date DESC"
         ).fetchall()
@@ -191,6 +191,7 @@ class Repository:
         for r in rows:
             result.append({
                 "patient_id": r["patient_id"],
+                "medical_no": r["medical_no"],
                 "name": get_security().decrypt(r["name_enc"]),
                 "gender": r["gender"],
                 "birth_date": r["birth_date"],
@@ -214,6 +215,7 @@ class Repository:
             return None
         return {
             "patient_id": row["patient_id"],
+            "medical_no": row["medical_no"],
             "name": get_security().decrypt(row["name_enc"]),
             "gender": row["gender"],
             "birth_date": row["birth_date"],
@@ -250,16 +252,37 @@ class Repository:
         }
 
     def insert_patient(self, data: dict) -> int:
-        """新建患者（自动加密 name/contact）。
-        data 含 name/contact 明文。
+        """新建患者（自动加密 name/contact + 自动生成病历号）。
+        data 含 name/contact 明文；medical_no 缺省时自动生成（CR-年份-4位序号）。
         对应旧 GUI 代码：patient_view._save 中的 encrypt_text + insert_row
         """
         enc_data = dict(data)
+        if not enc_data.get("medical_no"):
+            enc_data["medical_no"] = self.next_medical_no()
         if "name" in enc_data:
             enc_data["name_enc"] = get_security().encrypt(enc_data.pop("name"))
         if "contact" in enc_data:
             enc_data["contact_enc"] = get_security().encrypt(enc_data.pop("contact"))
         return insert_row(self.conn, "patient", enc_data)
+
+    def next_medical_no(self) -> str:
+        """生成下一个病历号：CR-年份-4位序号（0001 起连续，不复用）。
+
+        由 sys_counter 表持久化计数（MIGRATIONS v3）：删除患者不回退，
+        保证病历号唯一且可追溯。
+        """
+        from datetime import datetime
+        year = datetime.now().strftime("%Y")
+        row = self.conn.execute(
+            "SELECT counter_value FROM sys_counter WHERE counter_name='medical_no'"
+        ).fetchone()
+        nxt = (row["counter_value"] if row else 0) + 1
+        self.conn.execute(
+            "INSERT INTO sys_counter (counter_name, counter_value) VALUES ('medical_no', ?) "
+            "ON CONFLICT(counter_name) DO UPDATE SET counter_value=excluded.counter_value",
+            (nxt,))
+        self.conn.commit()
+        return f"CR-{year}-{nxt:04d}"
 
     def update_patient(self, patient_id: int, data: dict) -> None:
         """更新患者（自动加密 name/contact）。"""

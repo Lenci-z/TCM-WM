@@ -401,6 +401,27 @@ MIGRATIONS = [
             )""",
         ],
     ),
+    # 2026-08-03：可读病历号——patient 加 medical_no 字段 + 独立计数器（不复用、从 0001 连续）
+    (
+        3, "add_patient_medical_no",
+        [
+            "ALTER TABLE patient ADD COLUMN medical_no TEXT",
+            """CREATE TABLE IF NOT EXISTS sys_counter (
+                counter_name  TEXT PRIMARY KEY,
+                counter_value INTEGER NOT NULL DEFAULT 0
+            )""",
+            # 回填现有患者病历号（按 patient_id 升序，从 0001 起）
+            """UPDATE patient SET medical_no = 'CR-' || strftime('%Y','now') || '-' ||
+                printf('%04d', (SELECT rn FROM (
+                    SELECT patient_id, ROW_NUMBER() OVER (ORDER BY patient_id) AS rn
+                    FROM patient) ranked
+                    WHERE ranked.patient_id = patient.patient_id))
+            WHERE medical_no IS NULL""",
+            # 初始化病历号计数器（= 现有患者数）
+            """INSERT OR IGNORE INTO sys_counter (counter_name, counter_value)
+            SELECT 'medical_no', COUNT(*) FROM patient WHERE medical_no IS NOT NULL""",
+        ],
+    ),
 ]
 
 

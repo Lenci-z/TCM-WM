@@ -26,6 +26,7 @@ def patient_csv_rows(patients: list) -> list:
     """患者列表 → CSV 行（明文姓名/联系方式）。"""
     return [
         {
+            "medical_no": p.get("medical_no", ""),
             "patient_id": p["patient_id"],
             "name": p.get("name", ""),
             "gender": p.get("gender", ""),
