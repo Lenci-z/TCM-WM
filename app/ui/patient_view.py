@@ -141,6 +141,9 @@ class PatientView(ttk.Frame):
         if not path:
             return
         patients = self.app.repo.list_patients()
+        if not patients:
+            messagebox.showinfo("无数据", "当前没有患者记录可导出")
+            return
         headers = ["patient_id", "name", "gender", "birth_date", "disease_category",
                    "register_date", "status", "contact", "inpatient_no"]
         n = export_csv(path, headers, patient_csv_rows(patients))

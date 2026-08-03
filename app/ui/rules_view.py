@@ -250,6 +250,9 @@ class RulesView(ttk.Frame):
         if not path:
             return
         rows = audit_csv_rows(self.app.repo.list_audit_logs(1000))
+        if not rows:
+            messagebox.showinfo("无数据", "当前没有审计记录可导出")
+            return
         headers = ["log_id", "username", "action_time", "action_type",
                    "table_name", "record_id", "detail"]
         n = export_csv(path, headers, rows)

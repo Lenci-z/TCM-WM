@@ -13,6 +13,10 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from log import get_logger
+
+_logger = get_logger("view.followup")
+
 
 class FollowupView(ttk.Frame):
     """随访管理：计划生成/到期提醒/复评录入。"""
@@ -92,8 +96,11 @@ class FollowupView(ttk.Frame):
         if not path:
             return
         rows = followup_csv_rows(self.app.repo.list_followups_all())
-        headers = ["followup_id", "patient_id", "patient_name", "fu_type",
-                   "plan_date", "actual_date", "fu_status", "handler"]
+        if not rows:
+            messagebox.showinfo("无数据", "当前没有随访记录可导出")
+            return
+        headers = ["fu_id", "patient_id", "patient_name", "fu_type",
+                   "plan_date", "actual_date", "status", "handler"]
         n = export_csv(path, headers, rows)
         _logger.info("导出随访 CSV: %s (%d 条)", path, n)
         messagebox.showinfo("导出成功", f"已导出 {n} 条随访记录")
