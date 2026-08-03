@@ -17,6 +17,9 @@ outputs/
 # Hermes
 .hermes/plans/
 
+# WorkBuddy 审查工具运行时记忆
+.workbuddy/
+
 # 系统文件
 Thumbs.db
 Desktop.ini
