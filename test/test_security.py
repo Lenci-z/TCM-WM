@@ -142,5 +142,90 @@ class TestMigrateScript(unittest.TestCase):
                 os.unlink(os.path.join(os.path.dirname(dbp), f))
 
 
+class TestAuthManager(unittest.TestCase):
+    """登录认证 + RBAC + 审计（P3-T2）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        from repo import Repository
+        from auth import AuthManager
+        from security import SecurityManager
+        fd, cls.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        db.init_db(cls.db_path)
+        db.import_seed(cls.db_path)
+        cls.conn = db.get_conn(cls.db_path)
+        cls.repo = Repository(cls.conn)
+        cls.sec = SecurityManager(key=b"2" * 32)
+        cls.auth = AuthManager(cls.repo, cls.sec)
+        # 测试用户：admin（管理员）/ doctor（医师）/ therapist（治疗师）
+        cls.repo.create_user("admin", cls.sec.hash_password("Admin@123"),
+                             "系统管理员", "管理员")
+        cls.repo.create_user("doctor", cls.sec.hash_password("Doctor@123"),
+                             "张医师", "医师")
+        cls.repo.create_user("therapist", cls.sec.hash_password("Thera@123"),
+                             "李治疗师", "治疗师")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.conn.close()
+        os.unlink(cls.db_path)
+
+    def test_login_success(self):
+        token = self.auth.login("admin", "Admin@123")
+        self.assertIsNotNone(token)
+        self.assertEqual(self.auth.get_role(token), "管理员")
+
+    def test_login_wrong_password(self):
+        token = self.auth.login("doctor", "错误密码")
+        self.assertIsNone(token)
+
+    def test_login_unknown_user(self):
+        self.assertIsNone(self.auth.login("不存在", "任意密码"))
+
+    def test_failed_lock_after_5(self):
+        """连续 5 次失败 → 锁定（第 6 次即使密码正确也拒绝）。"""
+        for _ in range(5):
+            self.auth.login("therapist", "错误密码")
+        user = self.repo.get_user_by_username("therapist")
+        self.assertGreaterEqual(user["failed_count"], 5)
+        self.assertIsNotNone(user["locked_until"])
+        # 锁定期间正确密码也拒绝
+        token = self.auth.login("therapist", "Thera@123")
+        self.assertIsNone(token)
+
+    def test_rbac_matrix(self):
+        t_doc = self.auth.login("doctor", "Doctor@123")
+        t_th = self.auth.login("therapist", "Thera@123")
+        t_adm = self.auth.login("admin", "Admin@123")
+        # 处方签发：医师✅ 治疗师❌ 管理员✅
+        self.assertTrue(self.auth.check_permission(t_doc, "prescription:sign"))
+        self.assertFalse(self.auth.check_permission(t_th, "prescription:sign"))
+        self.assertTrue(self.auth.check_permission(t_adm, "prescription:sign"))
+        # 规则编辑：仅管理员
+        self.assertFalse(self.auth.check_permission(t_doc, "rules:edit"))
+        self.assertTrue(self.auth.check_permission(t_adm, "rules:edit"))
+        # 患者删除：医师✅ 治疗师❌（矩阵：治疗师无 patient:delete）
+        self.assertTrue(self.auth.check_permission(t_doc, "patient:delete"))
+        self.assertFalse(self.auth.check_permission(t_th, "patient:delete"))
+        # 无效 token
+        self.assertFalse(self.auth.check_permission("坏token", "patient:view"))
+
+    def test_logout_revokes(self):
+        token = self.auth.login("doctor", "Doctor@123")
+        self.auth.logout(token)
+        self.assertIsNone(self.auth.get_current_user(token))
+
+    def test_audit_log_records_login(self):
+        """登录成功/失败均写审计日志。"""
+        self.auth.login("admin", "Admin@123")
+        logs = self.repo.list_audit_logs()
+        action_types = [l["action_type"] for l in logs]
+        self.assertIn("LOGIN", action_types)
+        # 至少一条含用户名详情的成功登录记录
+        self.assertTrue(any("admin" in (l.get("detail") or "") for l in logs))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

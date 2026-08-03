@@ -560,6 +560,86 @@ class Repository:
         )
         self.conn.commit()
 
+    # ================= 用户与审计（P3-T2） =================
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        """按用户名读取用户。"""
+        row = self.conn.execute(
+            "SELECT * FROM user WHERE username=?", (username,)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def create_user(self, username: str, password_hash: str,
+                    display_name: str = "", role: str = "治疗师") -> int:
+        """新建用户。"""
+        return insert_row(self.conn, "user", {
+            "username": username,
+            "password_hash": password_hash,
+            "display_name": display_name,
+            "role": role,
+        })
+
+    def update_login_success(self, user_id: int) -> None:
+        """登录成功：更新 last_login、清零失败计数、解除锁定。"""
+        self.conn.execute(
+            "UPDATE user SET last_login=?, failed_count=0, locked_until=NULL WHERE user_id=?",
+            (now_str(), user_id),
+        )
+        self.conn.commit()
+
+    def update_login_fail(self, user_id: int) -> int:
+        """登录失败：失败计数 +1；达 5 次锁定 15 分钟。返回当前失败次数。"""
+        row = self.conn.execute(
+            "SELECT failed_count FROM user WHERE user_id=?", (user_id,)
+        ).fetchone()
+        n = (row["failed_count"] or 0) + 1
+        if n >= 5:
+            from datetime import datetime, timedelta
+            locked = (datetime.now() + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            self.conn.execute(
+                "UPDATE user SET failed_count=?, locked_until=? WHERE user_id=?",
+                (n, locked, user_id),
+            )
+        else:
+            self.conn.execute(
+                "UPDATE user SET failed_count=? WHERE user_id=?", (n, user_id))
+        self.conn.commit()
+        return n
+
+    def list_users(self) -> list:
+        """用户列表（不含密码哈希）。"""
+        rows = self.conn.execute(
+            "SELECT user_id, username, display_name, role, enabled, created_at, last_login "
+            "FROM user ORDER BY user_id"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def record_audit(self, user_id: int | None, action_type: str,
+                     table_name: str = None, record_id: int = None,
+                     old_value: str = None, new_value: str = None,
+                     detail: str = None) -> int:
+        """写入审计日志（P3：数据访问/关键操作留痕）。"""
+        return insert_row(self.conn, "audit_log", {
+            "user_id": user_id,
+            "action_time": now_str(),
+            "action_type": action_type,
+            "table_name": table_name,
+            "record_id": record_id,
+            "old_value": old_value,
+            "new_value": new_value,
+            "ip_address": "local",
+            "detail": detail,
+        })
+
+    def list_audit_logs(self, limit: int = 100) -> list:
+        """审计日志列表（管理员查看）。"""
+        rows = self.conn.execute(
+            "SELECT a.*, u.username FROM audit_log a "
+            "LEFT JOIN user u ON a.user_id=u.user_id "
+            "ORDER BY a.log_id DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     # ================= 通用 DAO =================
 
     def query_all(self, sql: str, params: tuple = ()) -> list:

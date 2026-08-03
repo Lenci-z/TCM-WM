@@ -14,6 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db import DB_PATH, get_conn, init_db, import_seed, SEED_DIR
 from log import setup_logging, get_logger
 from repo import Repository
+from auth import AuthManager
+from security import get_security
 
 _logger = get_logger("main")
 
@@ -35,7 +37,7 @@ def _install_excepthook():
 class MainApp(tk.Tk):
     """主窗口：Notebook 五 Tab（患者管理/评估录入/处方管理/随访管理/规则库维护）。"""
 
-    def __init__(self):
+    def __init__(self, auth=None, token=None, require_login=False):
         super().__init__()
         setup_logging()
         _install_excepthook()
@@ -47,13 +49,19 @@ class MainApp(tk.Tk):
         # 数据库初始化（首次启动建库 + 导入种子；后续直接打开）
         self._init_database()
 
+        # 认证（P3-T2）：auth 可注入（测试）；token 可预置（开发/测试跳过登录）
+        self.auth = auth if auth is not None else AuthManager(self.repo, get_security())
+        self.current_token = token
+        self._require_login = require_login
+
         # 顶部标题栏
         header = tk.Frame(self, bg="#8B2F2F", height=56)
         header.pack(fill="x")
         header.pack_propagate(False)
         tk.Label(header, text="中西医结合心血管康复全程管理系统",
                  bg="#8B2F2F", fg="white", font=("微软雅黑", 18, "bold")).pack(side="left", padx=16)
-        tk.Label(header, text="中医证型 × 心血管危险分层 双轴驱动 ｜ 第一版：CAD_PCI",
+        self.user_var = tk.StringVar(value="")
+        tk.Label(header, textvariable=self.user_var,
                  bg="#8B2F2F", fg="#F5E6C8", font=("微软雅黑", 10)).pack(side="right", padx=16)
 
         # 主体：Notebook 五区导航
@@ -86,6 +94,38 @@ class MainApp(tk.Tk):
         status = tk.Label(self, textvariable=self.status_var, anchor="w",
                           relief="sunken", bg="#F0F0F0", font=("微软雅黑", 9))
         status.pack(fill="x", side="bottom")
+
+        # 登录流（P3-T2）：require_login 时弹登录/初始化管理员窗口
+        if self._require_login:
+            self._start_login()
+        else:
+            self._refresh_user_bar()
+
+    # ---------- 认证（P3-T2） ----------
+    def _start_login(self):
+        """启动登录流程：无用户 → 初始化管理员；有用户 → 登录。"""
+        from ui.login_view import LoginView
+        if not self.repo.list_users():
+            LoginView(self, self.auth, mode="init", on_success=self._on_login_success)
+        else:
+            LoginView(self, self.auth, mode="login", on_success=self._on_login_success)
+
+    def _on_login_success(self, token: str) -> None:
+        """登录成功回调：保存 token + 刷新用户栏。"""
+        self.current_token = token
+        self._refresh_user_bar()
+        user = self.auth.get_current_user(token)
+        if user:
+            self.status_var.set(f"已登录：{user.get('display_name') or user.get('username')}（{user.get('role')}）")
+
+    def _refresh_user_bar(self):
+        """标题栏右侧显示当前用户（未登录则提示）。"""
+        if self.current_token:
+            user = self.auth.get_current_user(self.current_token)
+            if user:
+                self.user_var.set(f"{user.get('display_name') or user.get('username')} ｜ {user.get('role')}")
+                return
+        self.user_var.set("未登录")
 
     # ---------- 数据库 ----------
     def _init_database(self):
@@ -124,7 +164,8 @@ class MainApp(tk.Tk):
 
 
 def main():
-    app = MainApp()
+    # P3-T2：生产入口强制登录（无用户先初始化管理员）
+    app = MainApp(require_login=True)
     app.mainloop()
 
 
