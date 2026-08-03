@@ -272,7 +272,10 @@ class Repository:
 
     def delete_patient(self, patient_id: int) -> None:
         """删除患者（含手术信息）。
-        注意：patient 表无 ON DELETE CASCADE，需手动删 procedure。
+        保护性设计（P2审核 B-1 确认）：患者存在业务记录（assessment/prescription/
+        follow_up/alert 等外键引用）时，DELETE 触发 IntegrityError 并回滚——
+        医疗数据不可级联删除，有业务记录的患者一律拒绝删除（GUI 层捕获后友好提示）。
+        仅无业务记录的患者（仅 patient+procedure）可删除。
         """
         self.conn.execute("DELETE FROM procedure WHERE patient_id=?", (patient_id,))
         self.conn.execute("DELETE FROM patient WHERE patient_id=?", (patient_id,))

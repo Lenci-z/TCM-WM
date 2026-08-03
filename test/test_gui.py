@@ -20,13 +20,21 @@ sys.path.insert(0, os.path.join(ROOT, "app"))
 
 TEST_DB = os.path.join(ROOT, "data", "test_rehab.db")
 
-import tkinter as tk  # noqa: E402
+# tkinter 缺失时跳过 GUI 测试（B-2：部分精简 Python 发行版不含 tkinter，
+# 如 WorkBuddy managed Python 3.13；本机 python 3.11 含 tkinter 全量运行）
+try:
+    import tkinter as tk  # noqa: E402
+    TK_AVAILABLE = True
+except ImportError:
+    TK_AVAILABLE = False
+
 from db import init_db, get_conn, import_seed, insert_row, encrypt_text  # noqa: E402
 from engine.prescription import build_prescription  # noqa: E402
 from engine.alerts import evaluate_alerts  # noqa: E402
 from repo import Repository  # noqa: E402
 
 
+@unittest.skipIf(not TK_AVAILABLE, "当前 Python 环境无 tkinter，GUI 回归测试跳过")
 class GuiTestBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
