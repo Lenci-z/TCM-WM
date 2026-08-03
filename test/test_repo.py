@@ -159,29 +159,52 @@ class TestRepoPatientCRUD(unittest.TestCase):
         self.repo.delete_patient(pid)
         self.assertIsNone(self.repo.get_patient(pid))
 
-    def test_delete_patient_with_records_blocked(self):
-        """保护性设计（P2审核 B-1）：有业务记录的患者删除被拒绝（IntegrityError），
-        且数据不丢失（外键约束回滚）。医疗数据不可级联删除。"""
+    def test_delete_patient_with_records_cascade(self):
+        """级联删除（P2最终审核 B-1 采纳）：有业务记录的患者删除时，
+        全部子表（评估/证型/分层/处方/预警/随访）一并清除，患者消失。"""
         pid = self.repo.insert_patient({
-            "name": "保护测试",
+            "name": "级联测试",
             "gender": "男",
             "birth_date": "1968-08-08",
             "contact": "13500135001",
             "register_date": "2026-08-03",
             "disease_category": "CAD_PCI",
         })
+        # 造业务记录：评估 + 证型 + 分层 + 处方 + 预警 + 随访
         self.repo.insert_assessment({
-            "patient_id": pid,
-            "assessment_type": "基线",
-            "assess_date": "2026-08-03",
-            "LVEF": 50,
+            "patient_id": pid, "assessment_type": "基线",
+            "assess_date": "2026-08-03", "LVEF": 50,
         })
-        with self.assertRaises(Exception) as ctx:
-            self.repo.delete_patient(pid)
-        # 患者仍在（删除被外键约束拒绝）
-        self.assertIsNotNone(self.repo.get_patient(pid))
-        # 评估仍在
-        self.assertEqual(len(self.repo.list_assessments(pid)), 1)
+        self.repo.insert_tcm_pattern({
+            "patient_id": pid, "assess_date": "2026-08-03",
+            "main_pattern": "气虚血瘀", "physician_confirm": 1,
+        })
+        self.repo.insert_risk_stratification({
+            "patient_id": pid, "disease_category": "CAD_PCI",
+            "assess_date": "2026-08-03", "risk_level": "中危",
+        })
+        self.repo.insert_prescription({
+            "patient_id": pid, "matrix_code": "CAD_PCI-A2",
+            "gen_date": "2026-08-03", "status": "已签发",
+        })
+        self.repo.insert_alert(pid, {
+            "level": "红", "rule_code": "ALERT-R-001",
+            "trigger_data": {}, "notify_target": "医师端",
+        })
+        self.repo.insert_followup({
+            "patient_id": pid, "plan_date": "2026-08-10",
+            "fu_type": "1周", "status": "待随访",
+        })
+        # 级联删除
+        self.repo.delete_patient(pid)
+        # 患者消失，全部子表清空
+        self.assertIsNone(self.repo.get_patient(pid))
+        self.assertEqual(self.repo.list_assessments(pid), [])
+        self.assertIsNone(self.repo.get_latest_confirmed_pattern(pid))
+        self.assertIsNone(self.repo.get_latest_risk_level(pid))
+        self.assertEqual(self.repo.list_prescriptions(pid), [])
+        self.assertEqual(self.repo.list_pending_alerts(), [])
+        self.assertEqual(self.repo.list_followups(pid), [])
 
 
 class TestRepoProcedure(unittest.TestCase):
