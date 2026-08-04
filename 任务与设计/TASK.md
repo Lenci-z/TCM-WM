@@ -164,7 +164,7 @@
 - **验收**：52 测试 0 FAIL ✓
 
 ### 5.4 P2-T4 safety.py + alerts.py + pdf_export.py 解耦
-- [ ] `check_safety(safety_rules, disease_contra, ...)`、`evaluate_alerts(alert_rules, ...)`、`export_rx_pdf(patient_info, ...)` 移除 conn；持久化函数移 repo
+- [x] `check_safety(safety_rules, disease_contra, ...)`、`evaluate_alerts(alert_rules, ...)`、`export_rx_pdf(patient_info, ...)` 移除 conn；持久化函数移 repo（2026-08-03，5c5214e）
 
 ### 5.5 P2-T5 GUI 全量适配 + 测试拆分 + DB 健壮性
 - [x] 6 视图 `self.conn` → `self.app.repo`（patient/assessment/prescription/followup/rules 全部，2026-08-03）
