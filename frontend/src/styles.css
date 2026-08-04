@@ -1,0 +1,45 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: #f5f6f8; color: #333; }
+
+.topbar { background: #8B2F2F; color: #fff; display: flex; justify-content: space-between;
+          align-items: center; padding: 12px 20px; }
+.brand { font-size: 17px; font-weight: bold; }
+.user { font-size: 13px; color: #F5E6C8; }
+.link { background: none; border: none; color: #8B2F2F; cursor: pointer; text-decoration: underline; font-size: 13px; padding: 0 4px; }
+.link.danger { color: #c0392b; }
+
+.nav { background: #fff; border-bottom: 1px solid #e3e5e8; display: flex; gap: 4px; padding: 0 16px; }
+.nav a, .nav span { padding: 10px 16px; font-size: 14px; text-decoration: none; color: #555; }
+.nav a.active { color: #8B2F2F; font-weight: bold; border-bottom: 2px solid #8B2F2F; }
+.nav .disabled { color: #bbb; cursor: not-allowed; }
+
+.content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+h2 { font-size: 16px; margin: 16px 0 10px; color: #444; }
+
+.form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px;
+             background: #fff; padding: 16px; border-radius: 8px; border: 1px solid #e3e5e8; }
+.form-grid label { display: flex; flex-direction: column; font-size: 13px; color: #666; gap: 4px; }
+.form-grid input, .form-grid select { padding: 7px 9px; border: 1px solid #d0d3d8; border-radius: 4px; font-size: 13px; }
+.form-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+button { padding: 8px 18px; background: #8B2F2F; color: #fff; border: none; border-radius: 4px;
+         cursor: pointer; font-size: 14px; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+button.ghost { background: #fff; color: #555; border: 1px solid #d0d3d8; }
+
+.data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden;
+              border: 1px solid #e3e5e8; }
+.data-table th, .data-table td { padding: 9px 12px; border-bottom: 1px solid #eef0f2; font-size: 13px; text-align: left; }
+.data-table th { background: #f8f9fa; color: #555; font-weight: 600; }
+.data-table tr:hover td { background: #faf7f5; }
+.empty { text-align: center; color: #aaa; padding: 24px; }
+
+.error { color: #c0392b; font-size: 13px; margin: 8px 0; }
+
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+              background: linear-gradient(160deg, #8B2F2F 0%, #6d1f1f 100%); }
+.login-box { background: #fff; padding: 36px 32px; border-radius: 10px; width: 340px; }
+.login-box h1 { font-size: 17px; color: #8B2F2F; text-align: center; }
+.login-box .sub { font-size: 12px; color: #999; text-align: center; margin: 6px 0 20px; }
+.login-box input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d0d3d8;
+                   border-radius: 5px; font-size: 14px; }
+.login-box button { width: 100%; padding: 10px; }

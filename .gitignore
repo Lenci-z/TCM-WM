@@ -22,6 +22,11 @@ data/backups/
 data/.secret_key
 data/*.key
 
+# 前端产物（P4-B）
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+
 # 输出产物
 *.pdf
 outputs/
