@@ -114,6 +114,14 @@ class TestPatientE2E(unittest.TestCase):
             browser.close()
 
 
+def _select_patient(page, name: str):
+    """按姓名选择患者下拉（value 由 option 文本反查，避免 index 依赖）。"""
+    sel = "label:has-text('患者') select"
+    opt = page.locator(f"{sel} option", has_text=name).first
+    val = opt.get_attribute("value")
+    page.select_option(sel, value=val)
+
+
 @unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
 class TestAssessmentE2E(unittest.TestCase):
     """B-T3 浏览器 e2e：建档 → 评估录入（自动证型+分层）→ 结果回显。"""
@@ -154,7 +162,7 @@ class TestAssessmentE2E(unittest.TestCase):
             expect(page.locator("h2:has-text('评估录入')")).to_be_visible(timeout=8000)
 
             # 选患者 + 填指标 + 勾四诊
-            page.select_option("label:has-text('患者') select", index=1)
+            _select_patient(page, name)
             page.fill("label:has-text('LVEF(%)') input", "46")
             page.fill("label:has-text('6MWD(m)') input", "550")
             page.fill("label:has-text('PHQ-9') input", "5")
@@ -217,7 +225,7 @@ class TestPrescriptionE2E(unittest.TestCase):
             # 处方页：手动选证型/分层（评估无证型时自动填充为空）→ 生成
             page.click("a:has-text('处方管理')")
             expect(page.locator("h2:has-text('处方管理')")).to_be_visible(timeout=8000)
-            page.select_option("label:has-text('患者') select", index=1)
+            _select_patient(page, name)
             page.select_option("label:has-text('证型') select", label="气虚血瘀")
             page.select_option("label:has-text('危险分层') select", label="中危")
             page.click("button[type='submit']:has-text('一键生成处方')")
@@ -230,6 +238,57 @@ class TestPrescriptionE2E(unittest.TestCase):
             page.on("dialog", on_dialog)
             page.click("button:has-text('签发处方')")
             expect(page.locator(".rx-detail >> text=已签发")).to_be_visible(timeout=8000)
+
+            browser.close()
+
+
+@unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
+class TestFollowupE2E(unittest.TestCase):
+    """B-T5 浏览器 e2e：建档 → 随访计划生成 → 登记完成。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        conn = db.get_conn()
+        cls._before_ids = {r[0] for r in conn.execute("SELECT patient_id FROM patient").fetchall()}
+        conn.close()
+        _prepare_user()
+
+    @classmethod
+    def tearDownClass(cls):
+        _cleanup(cls._before_ids)
+
+    def test_followup_flow(self):
+        from playwright.sync_api import sync_playwright, expect
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge", headless=True)
+            page = browser.new_page()
+
+            # 登录 + 建档
+            page.goto(FRONT_URL)
+            page.fill("input[placeholder='用户名']", E2E_USER)
+            page.fill("input[placeholder='密码']", E2E_PWD)
+            page.click("button[type='submit']")
+            expect(page.locator(".nav")).to_be_visible(timeout=8000)
+            name = "随访E2E患者"
+            page.fill("label:has-text('姓名') input", name)
+            page.click("button[type='submit']:has-text('建档')")
+            expect(page.locator("tbody >> text=" + name)).to_be_visible(timeout=8000)
+
+            # 随访页：生成计划（5 条）
+            page.click("a:has-text('随访管理')")
+            expect(page.locator("h2:has-text('随访管理')")).to_be_visible(timeout=8000)
+            _select_patient(page, name)
+            page.click("button:has-text('生成随访计划')")
+            expect(page.locator(".data-table >> text=1周")).to_be_visible(timeout=8000)
+            expect(page.locator(".data-table >> text=12月")).to_be_visible(timeout=8000)
+
+            # 登记完成第一条（prompt 填完成人）
+            def on_dialog(dialog):
+                dialog.accept("E2E医师")
+            page.on("dialog", on_dialog)
+            page.locator("tr:has-text('1周') button:has-text('登记完成')").click()
+            expect(page.locator("tr:has-text('1周') >> text=已完成")).to_be_visible(timeout=8000)
 
             browser.close()
 

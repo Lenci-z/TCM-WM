@@ -319,5 +319,67 @@ class TestPrescription(ApiBase):
         self.assertEqual(r.json()["rpe_max"], 14)
 
 
+class TestFollowup(ApiBase):
+    """随访 API（B-T5）：计划生成/历史/完成登记。"""
+
+    def _setup(self, token):
+        pid = self.client.post("/api/patients", headers=self._auth_headers(token), json={
+            "name": "随访患者", "gender": "女", "birth_date": "1968-05-05",
+            "contact": "13912345671", "register_date": "2026-08-03",
+            "disease_category": "CAD_PCI",
+        }).json()["patient_id"]
+        return pid
+
+    def test_generate_plan(self):
+        token = self._login()
+        pid = self._setup(token)
+        r = self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                             json={"patient_id": pid})
+        self.assertEqual(r.status_code, 201, r.text)
+        d = r.json()
+        self.assertEqual(d["created"], 5)  # 1周/1月/3月/6月/12月
+        # 幂等：重复生成不新增
+        r2 = self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                              json={"patient_id": pid})
+        self.assertEqual(r2.json()["created"], 0)
+
+    def test_list_with_overdue(self):
+        token = self._login()
+        pid = self._setup(token)
+        self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                         json={"patient_id": pid})
+        r = self.client.get(f"/api/followups/{pid}", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        rows = r.json()
+        self.assertEqual(len(rows), 5)
+        self.assertIn("overdue", rows[0])  # 逾期标记
+
+    def test_complete(self):
+        token = self._login()
+        pid = self._setup(token)
+        self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                         json={"patient_id": pid})
+        fu_id = self.client.get(f"/api/followups/{pid}", headers=self._auth_headers(token)).json()[0]["fu_id"]
+        r = self.client.post(f"/api/followups/{fu_id}/complete", headers=self._auth_headers(token),
+                             json={"handler": "王医师"})
+        self.assertEqual(r.status_code, 200)
+        d = r.json()
+        self.assertEqual(d["status"], "已完成")
+        self.assertEqual(d["handler"], "王医师")
+
+    def test_requires_patient(self):
+        token = self._login()
+        r = self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                             json={"patient_id": 99999})
+        self.assertEqual(r.status_code, 404)
+
+    def test_therapist_cannot_generate(self):
+        """治疗师无 followup:create → 403。"""
+        token = self._login("therapist", "Thera@1234")
+        r = self.client.post("/api/followups/generate", headers=self._auth_headers(token),
+                             json={"patient_id": 1})
+        self.assertEqual(r.status_code, 403)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

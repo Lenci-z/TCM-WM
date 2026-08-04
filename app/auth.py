@@ -21,7 +21,7 @@ class AuthManager:
             "patient:view", "patient:create", "patient:edit", "patient:delete",
             "assessment:view", "assessment:create", "assessment:edit",
             "prescription:view", "prescription:create", "prescription:sign",
-            "followup:view", "followup:complete",
+            "followup:view", "followup:create", "followup:complete",
             "alert:view", "alert:handle",
             "pdf:export",
         ],

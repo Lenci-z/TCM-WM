@@ -48,4 +48,7 @@ export const api = {
   generateRx: (data) => request('/prescriptions/generate', { method: 'POST', body: JSON.stringify(data) }),
   updateRx: (rxId, data) => request(`/prescriptions/${rxId}`, { method: 'PUT', body: JSON.stringify(data) }),
   signRx: (rxId, data) => request(`/prescriptions/${rxId}/sign`, { method: 'POST', body: JSON.stringify(data) }),
+  listFollowups: (patientId) => request(`/followups/${patientId}`),
+  generateFollowups: (data) => request('/followups/generate', { method: 'POST', body: JSON.stringify(data) }),
+  completeFollowup: (fuId, data) => request(`/followups/${fuId}/complete`, { method: 'POST', body: JSON.stringify(data) }),
 }
