@@ -45,6 +45,11 @@ button.ghost { background: #fff; color: #555; border: 1px solid #d0d3d8; }
 .result strong { font-size: 16px; }
 .risk-high { color: #c0392b; } .risk-mid { color: #b9770e; } .risk-low { color: #1e8449; }
 .trigger { color: #666; font-size: 13px; }
+.safety { background: #fff8e1; border: 1px solid #f0d98c; border-radius: 6px; padding: 8px 12px; margin: 10px 0; font-size: 13px; }
+.tag { background: #8B2F2F; color: #fff; border-radius: 10px; padding: 2px 8px; margin: 0 4px; font-size: 12px; display: inline-block; }
+.hint { font-size: 12px; color: #888; align-self: center; }
+.btn-link { display: inline-block; padding: 8px 18px; background: #8B2F2F; color: #fff;
+            border-radius: 4px; text-decoration: none; font-size: 14px; }
 
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
               background: linear-gradient(160deg, #8B2F2F 0%, #6d1f1f 100%); }

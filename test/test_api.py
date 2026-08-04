@@ -226,5 +226,98 @@ class TestAssessment(ApiBase):
         self.assertEqual(len(r.json()), 1)
 
 
+class TestPrescription(ApiBase):
+    """处方 API（B-T4）：生成/调整/签发/PDF/权限。"""
+
+    def _setup_patient_with_assessment(self, token):
+        """建档 + 评估（自动分层），返回 patient_id。"""
+        pid = self.client.post("/api/patients", headers=self._auth_headers(token), json={
+            "name": "处方患者", "gender": "男", "birth_date": "1960-01-01",
+            "contact": "13912345670", "register_date": "2026-08-03",
+            "disease_category": "CAD_PCI",
+        }).json()["patient_id"]
+        self.client.post("/api/assessments", headers=self._auth_headers(token), json={
+            "patient_id": pid, "LVEF": 50, "six_mwd": 600,
+        })
+        return pid
+
+    def test_latest_assessment(self):
+        token = self._login()
+        pid = self._setup_patient_with_assessment(token)
+        r = self.client.get(f"/api/patients/{pid}/latest-assessment",
+                            headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("risk_level", r.json())
+
+    def test_generate(self):
+        token = self._login()
+        pid = self._setup_patient_with_assessment(token)
+        r = self.client.post("/api/prescriptions/generate", headers=self._auth_headers(token), json={
+            "patient_id": pid, "pattern": "气虚血瘀", "risk_level": "中危",
+        })
+        self.assertEqual(r.status_code, 201, r.text)
+        data = r.json()
+        self.assertEqual(data["matrix_code"], "CAD_PCI-A2")  # 气虚血瘀=1 + 中危=2
+        self.assertIn("safety", data)
+        self.assertEqual(data["status"], "草稿")
+        self.assertIsNotNone(data["baduanjin_level"])
+
+    def test_sign_requires_signature(self):
+        token = self._login()
+        pid = self._setup_patient_with_assessment(token)
+        rx_id = self.client.post("/api/prescriptions/generate", headers=self._auth_headers(token), json={
+            "patient_id": pid, "pattern": "痰浊闭阻", "risk_level": "高危",
+        }).json()["rx_id"]
+        # 空签名 → 422
+        r = self.client.post(f"/api/prescriptions/{rx_id}/sign", headers=self._auth_headers(token),
+                             json={"physician_sign": "  "})
+        self.assertEqual(r.status_code, 422)
+        # 正常签发
+        r = self.client.post(f"/api/prescriptions/{rx_id}/sign", headers=self._auth_headers(token),
+                             json={"physician_sign": "张医师"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["status"], "已签发")
+        # 已签发不可修改 → 409
+        r = self.client.put(f"/api/prescriptions/{rx_id}", headers=self._auth_headers(token),
+                            json={"rpe_max": 15})
+        self.assertEqual(r.status_code, 409)
+
+    def test_pdf_only_signed(self):
+        token = self._login()
+        pid = self._setup_patient_with_assessment(token)
+        rx_id = self.client.post("/api/prescriptions/generate", headers=self._auth_headers(token), json={
+            "patient_id": pid, "pattern": "气阴两虚", "risk_level": "低危",
+        }).json()["rx_id"]
+        # 未签发 → 409
+        r = self.client.get(f"/api/prescriptions/{rx_id}/pdf", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 409)
+        # 签发后下载
+        self.client.post(f"/api/prescriptions/{rx_id}/sign", headers=self._auth_headers(token),
+                         json={"physician_sign": "李医师"})
+        r = self.client.get(f"/api/prescriptions/{rx_id}/pdf", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers["content-type"], "application/pdf")
+        self.assertTrue(r.content[:5].startswith(b"%PDF"))
+
+    def test_therapist_cannot_generate(self):
+        """治疗师无 prescription:create → 403。"""
+        token = self._login("therapist", "Thera@1234")
+        r = self.client.post("/api/prescriptions/generate", headers=self._auth_headers(token), json={
+            "patient_id": 1, "pattern": "气虚血瘀", "risk_level": "中危",
+        })
+        self.assertEqual(r.status_code, 403)
+
+    def test_update_draft(self):
+        token = self._login()
+        pid = self._setup_patient_with_assessment(token)
+        rx_id = self.client.post("/api/prescriptions/generate", headers=self._auth_headers(token), json={
+            "patient_id": pid, "pattern": "气虚血瘀", "risk_level": "中危",
+        }).json()["rx_id"]
+        r = self.client.put(f"/api/prescriptions/{rx_id}", headers=self._auth_headers(token),
+                            json={"rpe_max": 14, "aerobic_duration": 30})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["rpe_max"], 14)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

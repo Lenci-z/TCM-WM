@@ -3,6 +3,7 @@ import { api, getToken, clearToken } from './api.js'
 import LoginPage from './pages/Login.jsx'
 import PatientsPage from './pages/Patients.jsx'
 import AssessmentPage from './pages/Assessment.jsx'
+import PrescriptionPage from './pages/Prescription.jsx'
 
 // 极简 hash 路由：login / patients（后续 B-T3~B-T7 扩充视图）
 function route() {
@@ -44,14 +45,15 @@ export default function App() {
       <nav className="nav">
         <a className={hash.startsWith('/patients') ? 'active' : ''} href="#/patients">患者管理</a>
         <a className={hash.startsWith('/assessments') ? 'active' : ''} href="#/assessments">评估录入</a>
-        {/* B-T4~B-T7 视图占位 */}
-        <span className="disabled">处方管理</span>
+        <a className={hash.startsWith('/prescriptions') ? 'active' : ''} href="#/prescriptions">处方管理</a>
+        {/* B-T5~B-T7 视图占位 */}
         <span className="disabled">随访管理</span>
         <span className="disabled">预警处理</span>
         <span className="disabled">规则库</span>
       </nav>
       <main className="content">
-        {hash.startsWith('/patients') ? <PatientsPage /> : <AssessmentPage />}
+        {hash.startsWith('/patients') ? <PatientsPage /> :
+         hash.startsWith('/assessments') ? <AssessmentPage /> : <PrescriptionPage />}
       </main>
     </div>
   )

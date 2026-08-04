@@ -43,4 +43,9 @@ export const api = {
   getPatternKeywords: () => request('/meta/pattern-keywords'),
   listAssessments: (patientId) => request(`/assessments/${patientId}`),
   createAssessment: (data) => request('/assessments', { method: 'POST', body: JSON.stringify(data) }),
+  listPrescriptions: (patientId) => request(`/prescriptions/${patientId}`),
+  latestAssessment: (patientId) => request(`/patients/${patientId}/latest-assessment`),
+  generateRx: (data) => request('/prescriptions/generate', { method: 'POST', body: JSON.stringify(data) }),
+  updateRx: (rxId, data) => request(`/prescriptions/${rxId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  signRx: (rxId, data) => request(`/prescriptions/${rxId}/sign`, { method: 'POST', body: JSON.stringify(data) }),
 }
