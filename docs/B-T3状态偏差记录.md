@@ -41,6 +41,15 @@
 2. **启动真正的 B-T3**：`frontend/src/pages/Assessment.jsx` + Playwright e2e，对接 `app/api/assessment.py`
 3. 后续 B-T4~B-T7 同理——全部走 React 前端，不再碰 tkinter
 
+
+---
+
+## 6. 纠正闭环（2026-08-04，提交 fc1bac8）
+
+- ✅ **真正的 B-T3 已完成**：`frontend/src/pages/Assessment.jsx`（分组表单 + 四诊问卷 + 自动证型/分层判定回显 + 历史）+ 后端 `app/api/assessment.py`（judge_pattern/stratify 自动判定 + 数值校验 + /api/meta/pattern-keywords）+ Playwright e2e 评估流程（浏览器实测通过）
+- ✅ 后续 B-T4~B-T7 全部走 React 前端（处方/随访/预警/规则），**不再碰 tkinter**
+- 全量测试：164 用例 0 FAIL（+API 评估 5 + e2e 评估 1）
+
 ## 5. 教训
 
 任务命名规范需要强化：B-T3 的正式名称是"评估录入 **React** 前端 + 测试"，不能简称为"评估录入"——HerMes 收到"评估录入"四个字后，可能不理解"前端框架已切换"，继续在 tkinter 上开发。
