@@ -236,7 +236,8 @@ P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调
 - [x] B-T0 路线决策备忘签字（四项输入全"是"→ 路线 B 锁定，2026-08-03）
 - [x] B-T1 FastAPI 骨架：api/main.py 工厂 + auth(login/me) + patients CRUD（token认证+RBAC+AES透明+删除409）+ db check_same_thread=False + test_api 13用例（2026-08-03）
 - [x] B-T2 患者管理垂直切片：frontend(Vite+React+代理) + 登录页 + 患者CRUD页 + Playwright e2e（msedge免下载）（2026-08-03）
-- [x] B-T3 评估录入 React 前端：Assessment.jsx（分组表单+四诊问卷+自动判定回显+历史）+ 后端 AssessmentAPI（judge_pattern/stratify 自动判定+校验+meta keywords）+ e2e 评估流程（2026-08-03/04）
+- [x] B-T3 评估录入 React 前端
+- [x] B-T4 处方管理 React 前端：Prescription.jsx（生成/调整/签发/PDF/历史）+ PrescriptionAPI（build_prescription+check_safety 自动安全校验、签发不可跳过、PDF 仅已签发）+ e2e 处方流程（2026-08-04）：Assessment.jsx（分组表单+四诊问卷+自动判定回显+历史）+ 后端 AssessmentAPI（judge_pattern/stratify 自动判定+校验+meta keywords）+ e2e 评估流程（2026-08-03/04）
 - [ ] B-T11~B-T13 管理端（用户/看板/审计备份，后置）
 
 ---
