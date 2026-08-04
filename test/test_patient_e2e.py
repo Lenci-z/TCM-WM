@@ -352,5 +352,95 @@ class TestAlertE2E(unittest.TestCase):
             browser.close()
 
 
+@unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
+class TestRulesE2E(unittest.TestCase):
+    """B-T7 浏览器 e2e：管理员规则库编辑保存（质控权限）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        cls._conn = db.get_conn()
+        cls._before_ids = {r[0] for r in cls._conn.execute("SELECT patient_id FROM patient").fetchall()}
+        cls._conn.close()
+        _prepare_user()
+        # 额外创建管理员 e2e 用户
+        from security import SecurityManager
+        from repo import Repository
+        import db as _db
+        conn = _db.get_conn()
+        repo = Repository(conn)
+        sec = SecurityManager()
+        if not repo.get_user_by_username("e2e_admin"):
+            repo.create_user("e2e_admin", sec.hash_password("E2e@Admin2026"), "E2E管理员", "管理员")
+        conn.close()
+
+    @classmethod
+    def tearDownClass(cls):
+        import db
+        conn = db.get_conn()
+        conn.execute("DELETE FROM user WHERE username=?", ("e2e_admin",))
+        conn.commit()
+        conn.close()
+        _cleanup(cls._before_ids)
+
+    def test_rules_flow(self):
+        from playwright.sync_api import sync_playwright, expect
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge", headless=True)
+            page = browser.new_page()
+
+            # 管理员登录 → 导航出现"规则库"
+            page.goto(FRONT_URL)
+            page.fill("input[placeholder='用户名']", "e2e_admin")
+            page.fill("input[placeholder='密码']", "E2e@Admin2026")
+            page.click("button[type='submit']")
+            expect(page.locator(".nav")).to_be_visible(timeout=8000)
+            expect(page.locator("a:has-text('规则库')")).to_be_visible(timeout=8000)
+
+            # 进入规则页 → 证型特征库（默认第一类）
+            page.click("a:has-text('规则库')")
+            expect(page.locator("h2:has-text('规则库维护')")).to_be_visible(timeout=8000)
+            expect(page.locator(".rule-nav")).to_be_visible(timeout=8000)
+
+            # 选中一行 → 编辑器出现 → 保存
+            page.locator("tbody tr").first.locator("button:has-text('编辑')").click()
+            expect(page.locator(".rule-edit")).to_be_visible(timeout=8000)
+            page.click("button:has-text('保存规则')")
+            expect(page.locator(".saved")).to_be_visible(timeout=8000)
+
+            browser.close()
+
+
+@unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
+class TestNonAdminRulesHidden(unittest.TestCase):
+    """非管理员（医师）看不到规则库导航（前端 RBAC）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        conn = db.get_conn()
+        cls._before_ids = {r[0] for r in conn.execute("SELECT patient_id FROM patient").fetchall()}
+        conn.close()
+        _prepare_user()
+
+    @classmethod
+    def tearDownClass(cls):
+        _cleanup(cls._before_ids)
+
+    def test_rules_nav_hidden(self):
+        from playwright.sync_api import sync_playwright, expect
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge", headless=True)
+            page = browser.new_page()
+            page.goto(FRONT_URL)
+            page.fill("input[placeholder='用户名']", E2E_USER)  # 医师
+            page.fill("input[placeholder='密码']", E2E_PWD)
+            page.click("button[type='submit']")
+            expect(page.locator(".nav")).to_be_visible(timeout=8000)
+            # 医师看不到规则库导航
+            expect(page.locator("a:has-text('规则库')")).to_have_count(0)
+            browser.close()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

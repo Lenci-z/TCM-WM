@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import auth, patient, assessment, prescription, followup, alert
+from api import auth, patient, assessment, prescription, followup, alert, rules
 
 __all__ = ["create_app"]
 
@@ -43,6 +43,7 @@ def create_app(repo=None, auth_manager=None) -> FastAPI:
     app.include_router(prescription.router, prefix="/api", tags=["处方"])
     app.include_router(followup.router, prefix="/api", tags=["随访"])
     app.include_router(alert.router, prefix="/api", tags=["预警"])
+    app.include_router(rules.router, prefix="/api", tags=["规则库"])
 
     @app.get("/api/health", tags=["系统"])
     def health():

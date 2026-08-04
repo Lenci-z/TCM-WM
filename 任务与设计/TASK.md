@@ -239,7 +239,8 @@ P2 引擎-数据解耦全部完成（T1–T5），调用链变为：**GUI 回调
 - [x] B-T3 评估录入 React 前端
 - [x] B-T4 处方管理 React 前端
 - [x] B-T5 随访管理 React 前端
-- [x] B-T6 预警管理 React 前端：Alerts.jsx（待处置/全部历史 tab + 分级着色 + 处置登记）+ AlertAPI（list_open/list_alerts/handle 权限）+ **评估后自动预警触发链路**（evaluate_alerts+insert_alert，字段别名映射 SBP/phq9_or_gad7）+ e2e 预警流程（2026-08-04）：Followup.jsx（计划生成/逾期高亮/完成登记）+ FollowupAPI（模板节点+Day0 幂等生成/overdue 标记/complete）+ RBAC 补 followup:create + e2e 随访流程（2026-08-04）：Prescription.jsx（生成/调整/签发/PDF/历史）+ PrescriptionAPI（build_prescription+check_safety 自动安全校验、签发不可跳过、PDF 仅已签发）+ e2e 处方流程（2026-08-04）：Assessment.jsx（分组表单+四诊问卷+自动判定回显+历史）+ 后端 AssessmentAPI（judge_pattern/stratify 自动判定+校验+meta keywords）+ e2e 评估流程（2026-08-03/04）
+- [x] B-T6 预警管理 React 前端
+- [x] B-T7 规则库维护 React 前端：Rules.jsx（7类规则导航+表格+JSON编辑器+保存即时生效）+ RulesAPI（rules:edit 质控权限仅管理员+白名单表/字段防注入+JSON语法校验）+ 导航仅管理员可见（前端RBAC）+ e2e（管理员编辑保存/非管理员导航隐藏）（2026-08-04）：Alerts.jsx（待处置/全部历史 tab + 分级着色 + 处置登记）+ AlertAPI（list_open/list_alerts/handle 权限）+ **评估后自动预警触发链路**（evaluate_alerts+insert_alert，字段别名映射 SBP/phq9_or_gad7）+ e2e 预警流程（2026-08-04）：Followup.jsx（计划生成/逾期高亮/完成登记）+ FollowupAPI（模板节点+Day0 幂等生成/overdue 标记/complete）+ RBAC 补 followup:create + e2e 随访流程（2026-08-04）：Prescription.jsx（生成/调整/签发/PDF/历史）+ PrescriptionAPI（build_prescription+check_safety 自动安全校验、签发不可跳过、PDF 仅已签发）+ e2e 处方流程（2026-08-04）：Assessment.jsx（分组表单+四诊问卷+自动判定回显+历史）+ 后端 AssessmentAPI（judge_pattern/stratify 自动判定+校验+meta keywords）+ e2e 评估流程（2026-08-03/04）
 - [ ] B-T11~B-T13 管理端（用户/看板/审计备份，后置）
 
 ---

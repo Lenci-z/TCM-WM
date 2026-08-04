@@ -54,6 +54,19 @@ button.ghost { background: #fff; color: #555; border: 1px solid #d0d3d8; }
 .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
 .tabs button { background: #fff; color: #555; border: 1px solid #d0d3d8; }
 .tabs .tab-active { background: #8B2F2F; color: #fff; border-color: #8B2F2F; }
+.rules-layout { display: flex; gap: 14px; align-items: flex-start; }
+.rule-nav { display: flex; flex-direction: column; gap: 6px; min-width: 210px; }
+.rule-nav button { text-align: left; background: #fff; color: #555; border: 1px solid #e3e5e8; padding: 9px 12px; font-size: 13px; }
+.rule-nav button.tab-active { background: #8B2F2F; color: #fff; }
+.rule-body { flex: 1; }
+.rule-edit { margin-top: 14px; background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 14px; }
+.rule-edit h3 { font-size: 14px; margin-bottom: 10px; }
+.json-edit { margin-top: 10px; }
+.json-edit label { font-size: 13px; color: #666; display: block; margin-bottom: 4px; }
+.json-edit textarea { width: 100%; font-family: Consolas, monospace; font-size: 12px;
+                      border: 1px solid #d0d3d8; border-radius: 4px; padding: 8px; }
+.row-selected td { background: #fdf3ec; }
+.saved { color: #1e8449; font-size: 13px; margin: 8px 0; }
 
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
               background: linear-gradient(160deg, #8B2F2F 0%, #6d1f1f 100%); }

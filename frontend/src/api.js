@@ -53,4 +53,6 @@ export const api = {
   completeFollowup: (fuId, data) => request(`/followups/${fuId}/complete`, { method: 'POST', body: JSON.stringify(data) }),
   listAlerts: (status) => request(`/alerts?status=${status}`),
   handleAlert: (alertId, data) => request(`/alerts/${alertId}/handle`, { method: 'POST', body: JSON.stringify(data) }),
+  listRules: () => request('/rules'),
+  updateRule: (table, rowId, data) => request(`/rules/${table}/${rowId}`, { method: 'PUT', body: JSON.stringify(data) }),
 }

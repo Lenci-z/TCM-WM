@@ -442,5 +442,66 @@ class TestAlert(ApiBase):
         self.assertEqual(r.status_code, 403)
 
 
+class TestRules(ApiBase):
+    """规则库 API（B-T7）：读取/更新/质控权限/白名单。"""
+
+    def test_list_rules(self):
+        token = self._login()  # admin
+        r = self.client.get("/api/rules", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        cats = r.json()["categories"]
+        self.assertEqual(len(cats), 7)
+        # 证型特征库有 6 行（A-F）
+        pattern_cat = next(c for c in cats if c["key"] == "证型特征库")
+        self.assertEqual(len(pattern_cat["rows"]), 6)
+
+    def test_update_rule(self):
+        token = self._login()
+        cats = self.client.get("/api/rules", headers=self._auth_headers(token)).json()["categories"]
+        pcat = next(c for c in cats if c["key"] == "证型特征库")
+        row = pcat["rows"][0]
+        r = self.client.put(f"/api/rules/{pcat['table']}/{row[pcat['pk']]}",
+                            headers=self._auth_headers(token),
+                            json={"plain": {"pattern_name": row["pattern_name"] + "（更新）"}})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["pattern_name"], row["pattern_name"] + "（更新）")
+        # 恢复
+        self.client.put(f"/api/rules/{pcat['table']}/{row[pcat['pk']]}",
+                        headers=self._auth_headers(token),
+                        json={"plain": {"pattern_name": row["pattern_name"]}})
+
+    def test_invalid_json_rejected(self):
+        token = self._login()
+        cats = self.client.get("/api/rules", headers=self._auth_headers(token)).json()["categories"]
+        pcat = next(c for c in cats if c["key"] == "证型特征库")
+        row = pcat["rows"][0]
+        r = self.client.put(f"/api/rules/{pcat['table']}/{row[pcat['pk']]}",
+                            headers=self._auth_headers(token),
+                            json={"json_fields": {"features_json": "{ 不是json"}})
+        self.assertEqual(r.status_code, 422)
+
+    def test_unknown_table_rejected(self):
+        token = self._login()
+        r = self.client.put("/api/rules/patient/1", headers=self._auth_headers(token),
+                            json={"plain": {"name": "x"}})
+        self.assertEqual(r.status_code, 422)
+
+    def test_unknown_field_rejected(self):
+        token = self._login()
+        cats = self.client.get("/api/rules", headers=self._auth_headers(token)).json()["categories"]
+        pcat = next(c for c in cats if c["key"] == "证型特征库")
+        row = pcat["rows"][0]
+        r = self.client.put(f"/api/rules/{pcat['table']}/{row[pcat['pk']]}",
+                            headers=self._auth_headers(token),
+                            json={"plain": {"name_enc": "hack"}})
+        self.assertEqual(r.status_code, 422)
+
+    def test_non_admin_forbidden(self):
+        """医师无 rules:edit → 403（质控权限）。"""
+        token = self._login("therapist", "Thera@1234")
+        r = self.client.get("/api/rules", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 403)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
