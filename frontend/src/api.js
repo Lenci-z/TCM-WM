@@ -51,4 +51,6 @@ export const api = {
   listFollowups: (patientId) => request(`/followups/${patientId}`),
   generateFollowups: (data) => request('/followups/generate', { method: 'POST', body: JSON.stringify(data) }),
   completeFollowup: (fuId, data) => request(`/followups/${fuId}/complete`, { method: 'POST', body: JSON.stringify(data) }),
+  listAlerts: (status) => request(`/alerts?status=${status}`),
+  handleAlert: (alertId, data) => request(`/alerts/${alertId}/handle`, { method: 'POST', body: JSON.stringify(data) }),
 }

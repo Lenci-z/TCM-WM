@@ -293,5 +293,64 @@ class TestFollowupE2E(unittest.TestCase):
             browser.close()
 
 
+@unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
+class TestAlertE2E(unittest.TestCase):
+    """B-T6 浏览器 e2e：建档+评估触发预警 → 预警页处置。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        conn = db.get_conn()
+        cls._before_ids = {r[0] for r in conn.execute("SELECT patient_id FROM patient").fetchall()}
+        conn.close()
+        _prepare_user()
+
+    @classmethod
+    def tearDownClass(cls):
+        _cleanup(cls._before_ids)
+
+    def test_alert_flow(self):
+        from playwright.sync_api import sync_playwright, expect
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge", headless=True)
+            page = browser.new_page()
+
+            # 登录 + 建档
+            page.goto(FRONT_URL)
+            page.fill("input[placeholder='用户名']", E2E_USER)
+            page.fill("input[placeholder='密码']", E2E_PWD)
+            page.click("button[type='submit']")
+            expect(page.locator(".nav")).to_be_visible(timeout=8000)
+            name = "预警E2E患者"
+            page.fill("label:has-text('姓名') input", name)
+            page.click("button[type='submit']:has-text('建档')")
+            expect(page.locator("tbody >> text=" + name)).to_be_visible(timeout=8000)
+
+            # 评估（收缩压 185 → 红色血压预警 ALERT-R-003）
+            page.click("a:has-text('评估录入')")
+            _select_patient(page, name)
+            page.fill("label:has-text('收缩压(mmHg)') input", "185")
+            page.click("button[type='submit']:has-text('保存并判定')")
+            expect(page.locator(".result")).to_be_visible(timeout=8000)
+
+            # 预警页：待处置列表出现
+            page.click("a:has-text('预警处理')")
+            expect(page.locator("h2:has-text('预警管理')")).to_be_visible(timeout=8000)
+            expect(page.locator("tbody >> text=" + name)).to_be_visible(timeout=8000)
+
+            # 处置（prompt 填内容）→ 目标行消失
+            def on_dialog(dialog):
+                dialog.accept("已通知患者复诊")
+            page.on("dialog", on_dialog)
+            page.locator("tr", has_text=name).locator("button:has-text('处置')").click()
+            expect(page.locator("tbody >> text=" + name)).to_have_count(0, timeout=8000)
+
+            # 全部历史 tab → 已关闭
+            page.click("button:has-text('全部历史')")
+            expect(page.locator("tbody >> text=已关闭")).to_be_visible(timeout=8000)
+
+            browser.close()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

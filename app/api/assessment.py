@@ -20,12 +20,11 @@ router = APIRouter()
 _RANGES = [
     ("LVEF", 0, 100), ("six_mwd", 0, 1000), ("NT_proBNP", 0, 100000),
     ("LDL_C", 0.1, 20), ("HbA1c", 3, 20), ("PHQ9", 0, 27),
-    ("GAD7", 0, 21), ("BMI", 10, 60), ("resting_hr", 30, 200),
-    ("sys_bp", 60, 260), ("dia_bp", 30, 150),
+    ("GAD7", 0, 21), ("BMI", 10, 60), ("BP_sys", 60, 260), ("BP_dia", 30, 150),
 ]
 
 _CLINICAL_KEYS = ["LVEF", "NT_proBNP", "LDL_C", "HbA1c", "UACR", "BMI",
-                  "six_mwd", "grip", "PHQ9", "GAD7", "resting_hr", "sys_bp", "dia_bp"]
+                  "six_mwd", "grip", "PHQ9", "GAD7", "BP_sys", "BP_dia"]
 
 
 class AssessmentCreate(BaseModel):
@@ -42,9 +41,8 @@ class AssessmentCreate(BaseModel):
     grip: float = None
     PHQ9: float = None
     GAD7: float = None
-    resting_hr: float = None
-    sys_bp: float = None
-    dia_bp: float = None
+    BP_sys: float = None
+    BP_dia: float = None
     pattern_items: list = []  # 四诊问卷勾选条目
 
 
@@ -129,6 +127,26 @@ def create_assessment(body: AssessmentCreate, request: Request):
         "assess_date": assess_date, "risk_level": risk_level, "physician_confirm": 1,
     })
 
+    # 4. 自动预警评估（B-T6：评估后联动触发，insert_alert 持久化）
+    from engine.alerts import evaluate_alerts
+    alert_ctx = dict(clinical)
+    alert_ctx["pattern"] = main_pattern or ""
+    alert_ctx["risk_level"] = risk_level
+    # 规则条件键别名映射（评估字段 → 预警规则 metric）
+    if alert_ctx.get("BP_sys") is not None:
+        alert_ctx["SBP"] = alert_ctx["BP_sys"]
+    if alert_ctx.get("BP_dia") is not None:
+        alert_ctx["DBP"] = alert_ctx["BP_dia"]
+    phq9 = alert_ctx.get("PHQ9") or 0
+    gad7 = alert_ctx.get("GAD7") or 0
+    if phq9 or gad7:
+        alert_ctx["phq9_or_gad7"] = max(phq9, gad7)
+    alert_trig = evaluate_alerts(repo.get_alert_rules(), dc,
+                                 main_pattern or "", risk_level, alert_ctx)
+    alert_ids = []
+    for item in alert_trig:
+        alert_ids.append(repo.insert_alert(body.patient_id, item))
+
     return {
         "assessment_id": aid,
         "patient_id": body.patient_id,
@@ -137,4 +155,5 @@ def create_assessment(body: AssessmentCreate, request: Request):
         "secondary_pattern": secondary_pattern,
         "risk_level": risk_level,
         "risk_triggered": triggered,
+        "alerts": alert_ids,
     }

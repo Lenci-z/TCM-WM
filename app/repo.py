@@ -771,6 +771,32 @@ class Repository:
         self.record_audit(None, "UPDATE", "alert", alert_id, "待处置", "已关闭",
                           f"预警处理：{handler} - {content}")
 
+    def list_alerts(self, limit: int = 200, status: str | None = None) -> list:
+        """全部预警（B-T6：含已关闭历史）。JOIN 规则名 + 患者名解密。"""
+        sql = ("SELECT a.alert_id, a.level, a.rule_code, "
+               "COALESCE(ra.name, a.rule_code) AS rule_name, "
+               "a.trigger_time, a.trigger_data_json, a.status, "
+               "a.handle_time, a.handler, a.handle_content, "
+               "p.patient_id, p.name_enc "
+               "FROM alert a "
+               "LEFT JOIN rule_alert ra ON a.rule_code=ra.rule_code "
+               "LEFT JOIN patient p ON a.patient_id=p.patient_id ")
+        params = []
+        if status:
+            sql += "WHERE a.status=? "
+            params.append(status)
+        sql += "ORDER BY a.trigger_time DESC LIMIT ?"
+        params.append(limit)
+        rows = self.conn.execute(sql, params).fetchall()
+        items = []
+        for r in rows:
+            item = dict(r)
+            item["patient_name"] = (
+                get_security().decrypt(r["name_enc"]) if r["name_enc"] else "")
+            item["detail"] = (r["trigger_data_json"] or "")[:120]
+            items.append(item)
+        return items
+
     def list_open_alerts(self, limit: int = 10) -> list:
         """待处置预警列表（看板概览：规则名 JOIN rule_alert，患者名解密）。"""
         rows = self.conn.execute(

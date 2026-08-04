@@ -34,6 +34,7 @@ class ApiBase(unittest.TestCase):
         cls.auth = AuthManager(cls.repo, cls.sec)
         cls.repo.create_user("admin", cls.sec.hash_password("Admin@1234"), "管理员", "管理员")
         cls.repo.create_user("therapist", cls.sec.hash_password("Thera@1234"), "治疗师", "治疗师")
+        cls.repo.create_user("nurse", cls.sec.hash_password("Nurse@1234"), "护士", "护士")
         from api.main import create_app
         cls.app = create_app(repo=cls.repo, auth_manager=cls.auth)
         cls.client = TestClient(cls.app)
@@ -378,6 +379,66 @@ class TestFollowup(ApiBase):
         token = self._login("therapist", "Thera@1234")
         r = self.client.post("/api/followups/generate", headers=self._auth_headers(token),
                              json={"patient_id": 1})
+        self.assertEqual(r.status_code, 403)
+
+
+class TestAlert(ApiBase):
+    """预警 API（B-T6）：列表（待处置/全部）+ 处置登记。"""
+
+    def _make_open_alert(self, token, pid=None):
+        if pid is None:
+            pid = self.client.post("/api/patients", headers=self._auth_headers(token), json={
+                "name": "预警患者", "gender": "男", "birth_date": "1958-03-03",
+                "contact": "13912345672", "register_date": "2026-08-03",
+                "disease_category": "CAD_PCI",
+            }).json()["patient_id"]
+        alert_id = self.repo.insert_alert(pid, {
+            "rule_code": "ALERT-R-001", "level": "红",
+            "trigger_data_json": '{"LVEF": 35}',
+        })
+        return alert_id, pid
+
+    def test_list_open(self):
+        token = self._login()
+        self._make_open_alert(token)
+        r = self.client.get("/api/alerts?status=open", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        rows = r.json()
+        self.assertTrue(len(rows) >= 1)
+        self.assertEqual(rows[0]["status"], "待处置")
+        self.assertIn("rule_name", rows[0])  # JOIN 规则名
+
+    def test_list_all_with_history(self):
+        token = self._login()
+        alert_id, _ = self._make_open_alert(token)
+        self.client.post(f"/api/alerts/{alert_id}/handle", headers=self._auth_headers(token),
+                         json={"content": "已联系患者复诊"})
+        r = self.client.get("/api/alerts?status=all", headers=self._auth_headers(token))
+        rows = r.json()
+        self.assertTrue(any(a["alert_id"] == alert_id and a["status"] == "已关闭" for a in rows))
+        self.assertIn("handler", rows[0])
+
+    def test_handle_requires_content(self):
+        token = self._login()
+        alert_id, _ = self._make_open_alert(token)
+        r = self.client.post(f"/api/alerts/{alert_id}/handle", headers=self._auth_headers(token),
+                             json={"content": "  "})
+        self.assertEqual(r.status_code, 422)
+
+    def test_handle_twice_conflict(self):
+        token = self._login()
+        alert_id, _ = self._make_open_alert(token)
+        self.client.post(f"/api/alerts/{alert_id}/handle", headers=self._auth_headers(token),
+                         json={"content": "第一次处置"})
+        r = self.client.post(f"/api/alerts/{alert_id}/handle", headers=self._auth_headers(token),
+                             json={"content": "第二次处置"})
+        self.assertEqual(r.status_code, 409)
+
+    def test_nurse_cannot_handle(self):
+        """护士有 alert:view 无 alert:handle → 403。"""
+        token = self._login("nurse", "Nurse@1234")
+        r = self.client.post("/api/alerts/1/handle", headers=self._auth_headers(token),
+                             json={"content": "x"})
         self.assertEqual(r.status_code, 403)
 
 

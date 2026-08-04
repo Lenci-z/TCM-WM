@@ -4,9 +4,8 @@ import { api } from '../api.js'
 const NUM_FIELDS = [
   { key: 'LVEF', label: 'LVEF(%)', group: '心功能', min: 0, max: 100 },
   { key: 'NT_proBNP', label: 'NT-proBNP(pg/mL)', group: '心功能', min: 0, max: 100000 },
-  { key: 'resting_hr', label: '静息心率', group: '心功能', min: 30, max: 200 },
-  { key: 'sys_bp', label: '收缩压', group: '心功能', min: 60, max: 260 },
-  { key: 'dia_bp', label: '舒张压', group: '心功能', min: 30, max: 150 },
+  { key: 'BP_sys', label: '收缩压(mmHg)', group: '心功能', min: 60, max: 260 },
+  { key: 'BP_dia', label: '舒张压(mmHg)', group: '心功能', min: 30, max: 150 },
   { key: 'LDL_C', label: 'LDL-C(mmol/L)', group: '代谢', min: 0.1, max: 20 },
   { key: 'HbA1c', label: 'HbA1c(%)', group: '代谢', min: 3, max: 20 },
   { key: 'UACR', label: 'UACR(mg/g)', group: '代谢' },

@@ -5,6 +5,7 @@ import PatientsPage from './pages/Patients.jsx'
 import AssessmentPage from './pages/Assessment.jsx'
 import PrescriptionPage from './pages/Prescription.jsx'
 import FollowupPage from './pages/Followup.jsx'
+import AlertsPage from './pages/Alerts.jsx'
 
 // 极简 hash 路由：login / patients（后续 B-T3~B-T7 扩充视图）
 function route() {
@@ -48,14 +49,16 @@ export default function App() {
         <a className={hash.startsWith('/assessments') ? 'active' : ''} href="#/assessments">评估录入</a>
         <a className={hash.startsWith('/prescriptions') ? 'active' : ''} href="#/prescriptions">处方管理</a>
         <a className={hash.startsWith('/followups') ? 'active' : ''} href="#/followups">随访管理</a>
-        {/* B-T6~B-T7 视图占位 */}
-        <span className="disabled">预警处理</span>
+        <a className={hash.startsWith('/alerts') ? 'active' : ''} href="#/alerts">预警处理</a>
+        {/* B-T7 视图占位 */}
         <span className="disabled">规则库</span>
       </nav>
       <main className="content">
         {hash.startsWith('/patients') ? <PatientsPage /> :
          hash.startsWith('/assessments') ? <AssessmentPage /> :
-         hash.startsWith('/prescriptions') ? <PrescriptionPage /> : <FollowupPage />}
+         hash.startsWith('/prescriptions') ? <PrescriptionPage /> :
+         hash.startsWith('/followups') ? <FollowupPage /> :
+         hash.startsWith('/alerts') ? <AlertsPage /> : <FollowupPage />}
       </main>
     </div>
   )
