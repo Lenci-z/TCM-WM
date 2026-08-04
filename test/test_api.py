@@ -160,5 +160,71 @@ class TestRbac(ApiBase):
         self.assertEqual(r.status_code, 401)
 
 
+class TestAssessment(ApiBase):
+    """评估 API（B-T3）：创建（自动证型+分层）+ 历史 + 校验。"""
+
+    def _create_patient(self, token):
+        r = self.client.post("/api/patients", headers=self._auth_headers(token), json={
+            "name": "评估患者", "gender": "女", "birth_date": "1965-01-01",
+            "contact": "13912345679", "register_date": "2026-08-03",
+            "disease_category": "CAD_PCI",
+        })
+        return r.json()["patient_id"]
+
+    def test_pattern_keywords(self):
+        token = self._login()
+        r = self.client.get("/api/meta/pattern-keywords", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(r.json()["items"]) > 0)  # 规则外置：从证型 keywords 来
+
+    def test_create_with_auto_judge(self):
+        token = self._login()
+        pid = self._create_patient(token)
+        r = self.client.post("/api/assessments", headers=self._auth_headers(token), json={
+            "patient_id": pid, "assessment_type": "基线",
+            "LVEF": 46, "six_mwd": 550, "PHQ9": 5,
+            "pattern_items": ["胸闷", "心悸", "舌质紫暗", "脉涩"],
+        })
+        self.assertEqual(r.status_code, 201, r.text)
+        data = r.json()
+        self.assertIsNotNone(data["main_pattern"])  # 自动证型判定
+        self.assertIn(data["risk_level"], ["低危", "中危", "高危"])  # 自动分层
+        # 证型/分层已落库（physician_confirm=1）
+        row = self.repo.query_one(
+            "SELECT main_pattern FROM tcm_pattern WHERE patient_id=? ORDER BY pattern_id DESC LIMIT 1",
+            (pid,))
+        self.assertEqual(row["main_pattern"], data["main_pattern"])
+        row2 = self.repo.query_one(
+            "SELECT risk_level FROM risk_stratification WHERE patient_id=? ORDER BY strat_id DESC LIMIT 1",
+            (pid,))
+        self.assertEqual(row2["risk_level"], data["risk_level"])
+
+    def test_validate_range(self):
+        token = self._login()
+        pid = self._create_patient(token)
+        r = self.client.post("/api/assessments", headers=self._auth_headers(token), json={
+            "patient_id": pid, "LVEF": 150,  # 超出 0-100
+        })
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("LVEF", r.json()["detail"])
+
+    def test_assessment_requires_patient(self):
+        token = self._login()
+        r = self.client.post("/api/assessments", headers=self._auth_headers(token), json={
+            "patient_id": 99999, "LVEF": 50,
+        })
+        self.assertEqual(r.status_code, 404)
+
+    def test_list_history(self):
+        token = self._login()
+        pid = self._create_patient(token)
+        self.client.post("/api/assessments", headers=self._auth_headers(token), json={
+            "patient_id": pid, "LVEF": 50, "six_mwd": 600,
+        })
+        r = self.client.get(f"/api/assessments/{pid}", headers=self._auth_headers(token))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()), 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

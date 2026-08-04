@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { api, getToken, clearToken } from './api.js'
 import LoginPage from './pages/Login.jsx'
 import PatientsPage from './pages/Patients.jsx'
+import AssessmentPage from './pages/Assessment.jsx'
 
 // 极简 hash 路由：login / patients（后续 B-T3~B-T7 扩充视图）
 function route() {
@@ -42,15 +43,15 @@ export default function App() {
       </header>
       <nav className="nav">
         <a className={hash.startsWith('/patients') ? 'active' : ''} href="#/patients">患者管理</a>
-        {/* B-T3~B-T7 视图占位 */}
-        <span className="disabled">评估录入</span>
+        <a className={hash.startsWith('/assessments') ? 'active' : ''} href="#/assessments">评估录入</a>
+        {/* B-T4~B-T7 视图占位 */}
         <span className="disabled">处方管理</span>
         <span className="disabled">随访管理</span>
         <span className="disabled">预警处理</span>
         <span className="disabled">规则库</span>
       </nav>
       <main className="content">
-        {hash.startsWith('/patients') ? <PatientsPage /> : <PatientsPage />}
+        {hash.startsWith('/patients') ? <PatientsPage /> : <AssessmentPage />}
       </main>
     </div>
   )

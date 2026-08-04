@@ -46,11 +46,12 @@ def _cleanup(before_ids: set):
     conn = db.get_conn()
     now_ids = {r[0] for r in conn.execute("SELECT patient_id FROM patient").fetchall()}
     for pid in now_ids - before_ids:
-        n = conn.execute("SELECT COUNT(*) FROM assessment WHERE patient_id=?",
-                         (pid,)).fetchone()[0]
-        if n == 0:
-            conn.execute("DELETE FROM procedure WHERE patient_id=?", (pid,))
-            conn.execute("DELETE FROM patient WHERE patient_id=?", (pid,))
+        # 先删评估相关业务记录（评估后患者有记录，保护式设计不允许直接删）
+        for tbl in ("assessment", "tcm_pattern", "risk_stratification", "alert",
+                    "adherence_log", "prescription", "follow_up"):
+            conn.execute(f"DELETE FROM {tbl} WHERE patient_id=?", (pid,))
+        conn.execute("DELETE FROM procedure WHERE patient_id=?", (pid,))
+        conn.execute("DELETE FROM patient WHERE patient_id=?", (pid,))
     conn.execute("DELETE FROM user WHERE username=?", (E2E_USER,))
     conn.commit()
     conn.close()
@@ -109,6 +110,63 @@ class TestPatientE2E(unittest.TestCase):
             row2.locator("button:has-text('删除')").click()
             # 等待列表刷新后该患者消失
             expect(page.locator(f"tbody >> text={name}改")).to_have_count(0, timeout=8000)
+
+            browser.close()
+
+
+@unittest.skipUnless(_api_alive(), "API/前端服务未启动（需 uvicorn 8321 + vite 5173）")
+class TestAssessmentE2E(unittest.TestCase):
+    """B-T3 浏览器 e2e：建档 → 评估录入（自动证型+分层）→ 结果回显。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import db
+        conn = db.get_conn()
+        cls._before_ids = {r[0] for r in conn.execute("SELECT patient_id FROM patient").fetchall()}
+        conn.close()
+        _prepare_user()
+
+    @classmethod
+    def tearDownClass(cls):
+        _cleanup(cls._before_ids)
+
+    def test_assessment_flow(self):
+        from playwright.sync_api import sync_playwright, expect
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge", headless=True)
+            page = browser.new_page()
+
+            # 登录
+            page.goto(FRONT_URL)
+            page.fill("input[placeholder='用户名']", E2E_USER)
+            page.fill("input[placeholder='密码']", E2E_PWD)
+            page.click("button[type='submit']")
+            expect(page.locator(".nav")).to_be_visible(timeout=8000)
+
+            # 建档（评估对象）
+            name = "评估E2E患者"
+            page.fill("label:has-text('姓名') input", name)
+            page.click("button[type='submit']:has-text('建档')")
+            expect(page.locator("tbody >> text=" + name)).to_be_visible(timeout=8000)
+
+            # 进入评估页
+            page.click("a:has-text('评估录入')")
+            expect(page.locator("h2:has-text('评估录入')")).to_be_visible(timeout=8000)
+
+            # 选患者 + 填指标 + 勾四诊
+            page.select_option("label:has-text('患者') select", index=1)
+            page.fill("label:has-text('LVEF(%)') input", "46")
+            page.fill("label:has-text('6MWD(m)') input", "550")
+            page.fill("label:has-text('PHQ-9') input", "5")
+            # 勾选一个四诊项（如有）
+            if page.locator(".checks input").count() > 0:
+                page.locator(".checks input").first.check()
+
+            # 提交 → 判定结果出现
+            page.click("button[type='submit']:has-text('保存并判定')")
+            expect(page.locator(".result")).to_be_visible(timeout=8000)
+            expect(page.locator(".result >> text=危险分层")).to_be_visible()
+            expect(page.locator(".result >> text=证型")).to_be_visible()
 
             browser.close()
 

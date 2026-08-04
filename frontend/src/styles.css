@@ -35,6 +35,17 @@ button.ghost { background: #fff; color: #555; border: 1px solid #d0d3d8; }
 
 .error { color: #c0392b; font-size: 13px; margin: 8px 0; }
 
+.group { border: 1px solid #e3e5e8; border-radius: 6px; padding: 10px 12px;
+         grid-column: span 2; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px; }
+.group legend { font-size: 13px; color: #8B2F2F; font-weight: bold; padding: 0 6px; }
+.group.full { grid-column: 1 / -1; display: block; }
+.group .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.check { font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.result { background: #fdf8f5; border: 1px solid #e8d9cf; border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
+.result strong { font-size: 16px; }
+.risk-high { color: #c0392b; } .risk-mid { color: #b9770e; } .risk-low { color: #1e8449; }
+.trigger { color: #666; font-size: 13px; }
+
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
               background: linear-gradient(160deg, #8B2F2F 0%, #6d1f1f 100%); }
 .login-box { background: #fff; padding: 36px 32px; border-radius: 10px; width: 340px; }

@@ -40,4 +40,7 @@ export const api = {
   createPatient: (data) => request('/patients', { method: 'POST', body: JSON.stringify(data) }),
   updatePatient: (id, data) => request(`/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePatient: (id) => request(`/patients/${id}`, { method: 'DELETE' }),
+  getPatternKeywords: () => request('/meta/pattern-keywords'),
+  listAssessments: (patientId) => request(`/assessments/${patientId}`),
+  createAssessment: (data) => request('/assessments', { method: 'POST', body: JSON.stringify(data) }),
 }
